@@ -1,0 +1,6 @@
+﻿{
+    "appId":  "com.joel.glycotank",
+    "appName":  "GlycoTank",
+    "webDir":  "www",
+    "bundledWebRuntime":  false
+}
