@@ -1,2 +1,0 @@
-# GlycoTank
-GlycoTank App
