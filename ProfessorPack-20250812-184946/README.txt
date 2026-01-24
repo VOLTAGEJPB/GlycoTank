@@ -34,4 +34,4 @@ Data & privacy
 
 Questions?
 ----------
-This pack was generated on 20250812-184946. If anything looks off, please ping the student. 🙂
+If anything looks off, please ping me
