@@ -6,3 +6,6 @@ _apk/
 *.jks
 android/app/release/
 .shots/
+site/public/*.html
+site/public/*/
+.wrangler/

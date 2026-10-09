@@ -1,5 +1,14 @@
 apply plugin: 'com.android.application'
 
+// Release signing: the upload key lives outside the repo. Point to its
+// keystore.properties with the GLYCOTANK_KEYSTORE_PROPERTIES environment
+// variable, or keep it at the default location below.
+def keystoreProps = new Properties()
+def keystorePropsFile = file(System.getenv("GLYCOTANK_KEYSTORE_PROPERTIES") ?: "${System.getenv('LOCALAPPDATA') ?: ''}/GlycoTank-signing/keystore.properties")
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
     namespace = "com.joel.glycotank"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +25,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystoreProps['storeFile']) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (keystoreProps['storeFile']) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
