@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0f1115">
+  <meta name="description" content="Track meals and training and see an estimate of your glycogen 'fuel tank'. Private, offline, no account.">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <title>GlycoTank</title>
+</head>
+<body>
+  <header class="topbar"><h1 id="title">GlycoTank</h1></header>
+
+  <main id="view" tabindex="-1"></main>
+
+  <nav id="tabs" aria-label="Main">
+    <button data-view="today" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v3h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V3zm2 2v1h6V5H9zM6 8v11h12V8H6zm2 7h8v2H8v-2z"/></svg><span>Today</span></button>
+    <button data-view="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg><span>Log</span></button>
+    <button data-view="checkin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9zm0-2.4c2.3-1.6 5.8-4.4 7.5-7.5A3.4 3.4 0 0 0 13.7 8L12 9.7 10.3 8a3.4 3.4 0 0 0-5.8 3.1c1.7 3.1 5.2 5.9 7.5 7.5z"/></svg><span>Check-in</span></button>
+    <button data-view="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 3a9 9 0 1 1-8.5 12h2.1A7 7 0 1 0 6 9.5L8.5 12H3V6.5l1.6 1.6A9 9 0 0 1 13 3zm-1 5h2v4.6l3.2 1.9-1 1.7L12 13.7V8z"/></svg><span>History</span></button>
+    <button data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 2h3l.5 2.6 1.9.8 2.2-1.5 2.1 2.1-1.5 2.2.8 1.9 2.5.4v3l-2.6.5-.8 1.9 1.5 2.2-2.1 2.1-2.2-1.5-1.9.8-.4 2.5h-3l-.5-2.6-1.9-.8-2.2 1.5-2.1-2.1 1.5-2.2-.8-1.9L2 13.5v-3l2.6-.5.8-1.9-1.5-2.2 2.1-2.1 2.2 1.5 1.9-.8.4-2.5zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg><span>Settings</span></button>
+  </nav>
+
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="confirm">
+    <form method="dialog">
+      <p id="confirmText"></p>
+      <div class="actions end">
+        <button class="btn ghost" value="cancel">Cancel</button>
+        <button class="btn danger" value="ok" id="confirmOk">Delete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="intro" aria-labelledby="introTitle">
+    <div class="slide">
+      <img src="/icon.svg" alt="" class="intro-icon">
+      <h2 id="introTitle">Welcome to GlycoTank</h2>
+      <p class="lead"><strong>Glycogen</strong> is carbohydrate stored in your muscles and liver: your short-term fuel.</p>
+      <ul>
+        <li>It <em>refills</em> when you eat carbs and <em>drains</em> when you train.</li>
+        <li>A low tank often shows up as low energy, brain fog or carb cravings.</li>
+        <li>It's fuel, not body fat, and it changes day to day.</li>
+      </ul>
+    </div>
+    <div class="slide" hidden>
+      <h2>Why track your tank?</h2>
+      <ul>
+        <li><strong>Smarter carbs:</strong> eat more around hard sessions and less on rest days.</li>
+        <li><strong>Better sessions:</strong> avoid training hard on an empty tank when quality matters.</li>
+        <li><strong>Easier dieting:</strong> expect more hunger on low-tank days and lean on protein and fiber.</li>
+      </ul>
+    </div>
+    <div class="slide" hidden>
+      <h2>How it works</h2>
+      <ul>
+        <li><strong>Meals add</strong> about 85% of their carbs to the tank.</li>
+        <li><strong>Your body uses</strong> some every day, plus more for training based on your sets, cardio minutes and intensity.</li>
+        <li>The <strong>carb planner</strong> suggests how much to eat for tomorrow's training.</li>
+        <li>No account, no servers: your data stays on your phone.</li>
+      </ul>
+      <p class="fine">GlycoTank gives general fitness estimates, not medical advice.</p>
+    </div>
+    <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="actions between">
+      <button class="btn ghost" id="introBack">Back</button>
+      <button class="btn primary" id="introNext">Next</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

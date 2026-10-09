@@ -1,0 +1,8 @@
+{
+  "appId": "com.joel.glycotank",
+  "appName": "GlycoTank",
+  "webDir": "dist",
+  "backgroundColor": "#0f1115",
+  "ios": { "contentInset": "never" },
+  "android": { "backgroundColor": "#0f1115" }
+}
