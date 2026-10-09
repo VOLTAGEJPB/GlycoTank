@@ -1,4 +1,5 @@
 import "./styles.css";
+import { App as NativeApp } from "@capacitor/app";
 import { loadState, saveState, flush } from "./store.js";
 import { $, $$ } from "./ui.js";
 import { renderToday } from "./views/today.js";
@@ -95,6 +96,17 @@ function showIntro() {
   show();
   dlg.showModal();
 }
+
+// Android back button: close any open dialog, then go back to Today, then exit.
+NativeApp.addListener("backButton", () => {
+  const open = document.querySelector("dialog[open]");
+  if (open) return open.close();
+  if (app.current !== "today" || app.editing) {
+    app.editing = null;
+    return app.go("today");
+  }
+  NativeApp.exitApp();
+});
 
 // ---------- Start ----------
 (async () => {

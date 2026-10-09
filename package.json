@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/VOLTAGEJPB/GlycoTank#readme",
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@capacitor/filesystem": "^8.1.4",
     "@capacitor/local-notifications": "^8.3.1",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.3",
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.3",
     "@capacitor/ios": "^8.5.3",
     "vite": "^8.3.4"
