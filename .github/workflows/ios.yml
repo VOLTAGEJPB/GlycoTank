@@ -15,9 +15,9 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -45,7 +45,7 @@ jobs:
       - name: Run in the simulator and take screenshots
         run: |
           set -x
-          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; c=[x for r,l in d.items() if 'iOS' in r for x in l if x['name'].startswith('iPhone')]; print(sorted(c, key=lambda x: x['name'])[-1]['udid'])")
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; c=[x for r,l in d.items() if 'iOS' in r for x in l if x['name'].startswith('iPhone')]; pm=[x for x in c if 'Pro Max' in x['name']]; print(sorted(pm or c, key=lambda x: x['name'])[-1]['udid'])")
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           APP=$(find build/Build/Products -name "App.app" -maxdepth 3 | head -1)
@@ -59,7 +59,7 @@ jobs:
           xcrun simctl spawn "$DEVICE" log show --last 2m --predicate 'process == "App"' --style compact > shots/app-log.txt || true
           xcrun simctl list devices | grep Booted > shots/device.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: ios-simulator-screenshots

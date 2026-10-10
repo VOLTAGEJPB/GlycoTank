@@ -115,6 +115,18 @@ NativeApp.addListener("backButton", () => {
   const params = new URLSearchParams(location.search);
   app.go(params.has("demo") && VIEWS[params.get("view")] ? params.get("view") : "today", params.get("section") || undefined);
   if (!app.state.meta.introSeen || params.has("intro")) showIntro();
+  if (params.has("demo") && params.get("scroll")) document.querySelectorAll(".card")[+params.get("scroll")]?.scrollIntoView({ block: "start" });
+  // Demo only: pre-fill fields for screenshots, e.g. &fill=mName:Chicken bowl|mQuick:650 cal 70c
+  if (params.has("demo") && params.get("fill")) {
+    for (const pair of params.get("fill").split("|")) {
+      const [id, value] = pair.split(/:(.*)/s);
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.value = value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  }
   // Re-render when the app comes back to the foreground on a new day.
   let lastDay = new Date().toDateString();
   document.addEventListener("visibilitychange", () => {

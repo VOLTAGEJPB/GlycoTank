@@ -1,6 +1,6 @@
 // Sample data for screenshots and testing. Only loaded when the page URL
 // contains ?demo, which can't happen inside the installed app.
-import { localDate, addDays } from "./model.js";
+import { localDate, addDays, personalize } from "./model.js";
 import { emptyState } from "./store.js";
 
 const MEALS = [
@@ -16,7 +16,10 @@ const MEALS = [
 export function demoState() {
   const st = emptyState();
   st.meta = { introSeen: true, personalized: true };
-  Object.assign(st.settings, { kcalTarget: 2400, proteinTarget: 165, carbGuide: 270, fiberTarget: 32, glycoCap: 430, units: "lb" });
+  st.profile = { weight: 185, weightUnits: "lb", heightUnits: "ftin", heightFt: 5, heightIn: 11, age: 32, sex: "m", goal: "maintain", daysPerWeek: 4, setsPerSession: 14, cardioMinsPerWeek: 90, cardioIntensity: 3 };
+  const t = personalize(st.profile);
+  for (const k of ["kcalTarget", "proteinTarget", "carbGuide", "fiberTarget", "glycoCap", "uptakePct", "setCost", "cardioGpm", "dailyUse"]) st.settings[k] = t[k];
+  st.settings.units = "lb";
   const today = localDate();
   let id = 0;
   for (let d = 13; d >= 0; d--) {

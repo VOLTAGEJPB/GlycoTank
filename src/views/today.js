@@ -62,7 +62,7 @@ export function renderToday(root, app) {
       <div class="row3">
         <label class="field"><span>Hard sets</span><input id="planSets" type="number" inputmode="numeric" min="0" placeholder="0"></label>
         <label class="field"><span>Cardio min</span><input id="planMins" type="number" inputmode="numeric" min="0" placeholder="0"></label>
-        ${select("planInt", "Intensity", [[1, "1 · very easy"], [2, "2 · easy"], [3, "3 · moderate"], [4, "4 · hard"], [5, "5 · very hard"]], 3)}
+        ${select("planInt", "Intensity", [[1, "Very easy"], [2, "Easy"], [3, "Moderate"], [4, "Hard"], [5, "Very hard"]], 3)}
       </div>
       <div class="plan-out"><span class="label">Eat this much more today</span><span class="kpi" id="planOut">—</span></div>
       <p class="hint" id="planNote" hidden>Your tank is low. Refilling it fully will take a couple of days, so this is capped at 1.5× your daily carb guide.</p>
