@@ -3,6 +3,7 @@ import {
   streak, lastNDays, workoutCost,
 } from "../model.js";
 import { $, esc, round, num, progress, select } from "../ui.js";
+import { animate, countUp } from "../motion.js";
 import { workoutLine, mealLine } from "./entries.js";
 
 let chartDays = 14;
@@ -31,10 +32,10 @@ export function renderToday(root, app) {
       <div class="tank-head">
         <div>
           <div class="label">Glycogen tank</div>
-          <div class="kpi">${round(level)} g <small>/ ${s.glycoCap} g</small></div>
+          <div class="kpi" id="tankGrams">${round(level)} g <small>/ ${s.glycoCap} g</small></div>
           <div class="hint">${esc(status.label)}</div>
         </div>
-        <div class="gauge" style="--pct:${round(status.pct)}"><span>${round(status.pct)}%</span></div>
+        <div class="gauge" id="gauge" style="--pct:0"><span id="gaugePct">0%</span></div>
       </div>
       <div class="chart-head">
         <span class="label">Trend</span>
@@ -97,12 +98,24 @@ export function renderToday(root, app) {
 
   $("#chartDays").addEventListener("change", (e) => {
     chartDays = +e.target.value;
-    drawChart(series, today, s.glycoCap);
+    animate(700, (p) => drawChart(series, today, s.glycoCap, p));
   });
-  drawChart(series, today, s.glycoCap);
+
+  // Gauge fills, numbers count up and the trend line draws in. While the launch
+  // animation is still on screen, wait for it so these play when visible.
+  const reveal = () => {
+    requestAnimationFrame(() => $("#gauge")?.style.setProperty("--pct", round(status.pct)));
+    countUp($("#tankGrams"), level, 1000, (v) => `${Math.round(v)} g `);
+    countUp($("#gaugePct"), status.pct, 1000, (v) => `${Math.round(v)}%`);
+    animate(900, (p) => drawChart(series, today, s.glycoCap, p));
+  };
+  drawChart(series, today, s.glycoCap, 0);
+  if (app.launching) app.revealToday = reveal;
+  else reveal();
 }
 
-function drawChart(series, today, cap) {
+// Draws the trend; `progress` (0..1) reveals the line from left to right.
+function drawChart(series, today, cap, progress = 1) {
   const canvas = $("#chart");
   if (!canvas) return;
   const days = lastNDays(today, chartDays);
@@ -129,7 +142,19 @@ function drawChart(series, today, cap) {
     ctx.stroke();
   }
   const pts = values.map((v, i) => (v == null ? null : [x(i), y(v)])).filter(Boolean);
-  if (pts.length) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, progress >= 1 ? w : pad + (w - pad * 2) * progress + 2, h);
+  ctx.clip();
+  if (pts.length === 1 && progress > 0) {
+    // Only one day so far: show it as a dot until there's a trend to draw.
+    ctx.beginPath();
+    ctx.arc(pts[0][0], pts[0][1], 5, 0, Math.PI * 2);
+    ctx.fillStyle = accent;
+    ctx.fill();
+    const tip = $("#chartTip");
+    if (tip && !tip.dataset.touched) tip.textContent = "Your trend line appears after a couple of days of logging.";
+  } else if (pts.length && progress > 0) {
     const grad = ctx.createLinearGradient(0, pad, 0, h - pad);
     grad.addColorStop(0, accent + "55");
     grad.addColorStop(1, accent + "05");
@@ -147,8 +172,10 @@ function drawChart(series, today, cap) {
     ctx.lineJoin = "round";
     ctx.stroke();
   }
+  ctx.restore();
 
   canvas.onpointerdown = canvas.onpointermove = (e) => {
+    $("#chartTip").dataset.touched = "1";
     if (e.type === "pointermove" && e.buttons === 0 && e.pointerType !== "mouse") return;
     const rect = canvas.getBoundingClientRect();
     const i = Math.round(((e.clientX - rect.left - pad) / (rect.width - pad * 2)) * (days.length - 1));

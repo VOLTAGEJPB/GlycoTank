@@ -1,6 +1,6 @@
 import { localDate, plateMath, parseMealText } from "../model.js";
 import { uid } from "../store.js";
-import { $, $$, esc, num, field, select, toast, confirmDialog } from "../ui.js";
+import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 
 const EXERCISES = {
   Chest: ["Bench Press", "Incline Dumbbell Press", "Push-up", "Cable Fly", "Dip"],
@@ -14,6 +14,7 @@ const ALL_EXERCISES = Object.values(EXERCISES).flat();
 const INTENSITY = [[1, "1 · very easy"], [2, "2 · easy"], [3, "3 · moderate"], [4, "4 · hard"], [5, "5 · very hard"]];
 
 let mode = "meal"; // "meal" | "workout"
+let shownMode = "meal"; // where the toggle's thumb was last drawn, so it can slide
 let restInterval = null;
 
 export function openLog(app, section, editing = null) {
@@ -25,12 +26,14 @@ export function renderLog(root, app) {
   const editing = app.editing;
   if (editing) mode = editing.kind;
   root.innerHTML = `
-    <div class="segmented" role="tablist">
+    <div class="segmented" role="tablist" style="--pos:${shownMode === "workout" ? 1 : 0}">
       <button role="tab" data-mode="meal" aria-selected="${mode === "meal"}">Meal</button>
       <button role="tab" data-mode="workout" aria-selected="${mode === "workout"}">Workout</button>
     </div>
     <div id="logBody"></div>
     <datalist id="exerciseList">${ALL_EXERCISES.map((e) => `<option value="${esc(e)}">`).join("")}</datalist>`;
+  requestAnimationFrame(() => $(".segmented", root)?.style.setProperty("--pos", mode === "workout" ? 1 : 0));
+  shownMode = mode;
   $$("[data-mode]", root).forEach((b) =>
     b.addEventListener("click", () => {
       mode = b.dataset.mode;
@@ -106,7 +109,7 @@ function renderMeal(root, app) {
     else state.meals.push({ id: uid(), ...data });
     app.editing = null;
     app.save();
-    toast(m ? "Meal updated" : "Meal saved");
+    success(m ? "Meal updated" : "Meal saved");
     app.go("today");
   });
   $("#mFavSave").addEventListener("click", () => {
@@ -261,7 +264,7 @@ function renderWorkout(root, app) {
       const sessionName = $("#wSessionName").value.trim() || "Session";
       for (const r of rows) state.workouts.push({ id: uid(), date, type: "strength", ...r, name: r.name || "Strength", sessionId, sessionName, notes });
       app.save();
-      toast(`Session saved (${rows.length} exercise${rows.length === 1 ? "" : "s"})`);
+      success(`Session saved (${rows.length} exercise${rows.length === 1 ? "" : "s"})`);
       return app.go("today");
     }
     const data = { ...readOne(), date, notes };
@@ -271,7 +274,7 @@ function renderWorkout(root, app) {
     } else state.workouts.push({ id: uid(), ...data });
     app.editing = null;
     app.save();
-    toast(w ? "Workout updated" : "Workout saved");
+    success(w ? "Workout updated" : "Workout saved");
     app.go("today");
   });
   $("#wFavSave")?.addEventListener("click", () => {

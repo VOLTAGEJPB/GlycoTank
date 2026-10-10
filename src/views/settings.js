@@ -1,6 +1,6 @@
 import { personalize, DEFAULT_SETTINGS, localDate } from "../model.js";
 import { normalize, emptyState } from "../store.js";
-import { $, $$, esc, num, field, select, toast, confirmDialog } from "../ui.js";
+import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 import { shareFile, toCsv, applyReminders, remindersSupported } from "../native.js";
 
 const TUNABLE = [
@@ -136,7 +136,7 @@ export function renderSettings(root, app) {
     for (const k of ["kcalTarget", "proteinTarget", "carbGuide", "fiberTarget", "glycoCap", "uptakePct", "setCost", "cardioGpm", "dailyUse"]) s[k] = r[k];
     state.meta.personalized = true;
     app.save();
-    toast("Your targets are set");
+    success("Your targets are set");
     renderSettings(root, app);
   });
 

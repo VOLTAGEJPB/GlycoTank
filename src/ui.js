@@ -1,5 +1,7 @@
 // Small DOM helpers shared by every screen.
 
+import { haptic } from "./motion.js";
+
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -21,6 +23,12 @@ export function prettyDate(dateStr, today) {
   if (dateStr === today) return "Today";
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+// Confirmation toast plus a success haptic, for saves.
+export function success(message) {
+  toast(message);
+  haptic.success();
 }
 
 let toastTimer;

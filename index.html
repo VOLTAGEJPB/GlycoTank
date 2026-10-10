@@ -10,11 +10,31 @@
   <title>GlycoTank</title>
 </head>
 <body>
+  <!-- Launch animation: the tank outline draws, fuel rises to your current level, then it fades into the app. -->
+  <div id="launch" aria-hidden="true">
+    <svg class="launch-tank" viewBox="0 0 120 160">
+      <defs>
+        <clipPath id="launchClip"><rect x="14" y="18" width="92" height="132" rx="24"/></clipPath>
+        <linearGradient id="launchFuel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ee0b4"/><stop offset="1" stop-color="#3fb383"/></linearGradient>
+      </defs>
+      <rect class="launch-cap" x="44" y="5" width="32" height="13" rx="5"/>
+      <rect x="14" y="18" width="92" height="132" rx="24" fill="#20283a"/>
+      <g clip-path="url(#launchClip)">
+        <g class="launch-fuel">
+          <path class="launch-wave" d="M-120 60 q30 -9 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 V220 H-120 Z" fill="url(#launchFuel)"/>
+        </g>
+      </g>
+      <path class="launch-outline" pathLength="1" d="M38 18 H82 A24 24 0 0 1 106 42 V126 A24 24 0 0 1 82 150 H38 A24 24 0 0 1 14 126 V42 A24 24 0 0 1 38 18 Z"/>
+    </svg>
+    <div class="launch-name">Glyco<span>Tank</span></div>
+  </div>
+
   <header class="topbar"><h1 id="title">GlycoTank</h1></header>
 
   <main id="view" tabindex="-1"></main>
 
   <nav id="tabs" aria-label="Main">
+    <span id="tabInk" aria-hidden="true"></span>
     <button data-view="today" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v3h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V3zm2 2v1h6V5H9zM6 8v11h12V8H6zm2 7h8v2H8v-2z"/></svg><span>Today</span></button>
     <button data-view="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg><span>Log</span></button>
     <button data-view="checkin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.6-9.3-9A5.4 5.4 0 0 1 12 6a5.4 5.4 0 0 1 9.3 6c-2.3 4.4-9.3 9-9.3 9zm0-2.4c2.3-1.6 5.8-4.4 7.5-7.5A3.4 3.4 0 0 0 13.7 8L12 9.7 10.3 8a3.4 3.4 0 0 0-5.8 3.1c1.7 3.1 5.2 5.9 7.5 7.5z"/></svg><span>Check-in</span></button>

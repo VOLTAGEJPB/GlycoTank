@@ -1,6 +1,6 @@
 import { localDate, readiness, readinessFor, baselineRhr } from "../model.js";
 import { uid } from "../store.js";
-import { $, esc, num, field, select, toast, prettyDate } from "../ui.js";
+import { $, esc, num, field, select, toast, success, prettyDate } from "../ui.js";
 
 const MOODS = [["great", "Great"], ["ok", "OK"], ["tired", "Tired"], ["stressed", "Stressed"], ["sore", "Sore"]];
 
@@ -52,7 +52,7 @@ export function renderCheckin(root, app) {
     if (i >= 0) state.checks[i] = { ...state.checks[i], ...data };
     else state.checks.push({ id: uid(), ...data });
     app.save();
-    toast("Check-in saved");
+    success("Check-in saved");
     app.go("today");
   });
 }
