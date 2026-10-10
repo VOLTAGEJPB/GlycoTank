@@ -1,0 +1,66 @@
+# Builds the iOS app on a macOS runner and runs it in the iPhone simulator.
+# No Apple account needed: it builds unsigned for the simulator, launches the
+# app, and uploads screenshots as an artifact. (Signed App Store builds come
+# later, once the Apple Developer account exists.)
+name: iOS simulator build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [rebuild, main]
+    paths: ["src/**", "index.html", "public/**", "ios/**", "package*.json", "capacitor.config.json", ".github/workflows/ios.yml"]
+
+jobs:
+  simulator:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install and test
+        run: |
+          npm ci
+          npm test
+
+      - name: Build web app and sync into iOS
+        run: |
+          npm run build
+          npx cap sync ios
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build for the iPhone simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build CODE_SIGNING_ALLOWED=NO build | tail -40
+
+      - name: Run in the simulator and take screenshots
+        run: |
+          set -x
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; c=[x for r,l in d.items() if 'iOS' in r for x in l if x['name'].startswith('iPhone')]; print(sorted(c, key=lambda x: x['name'])[-1]['udid'])")
+          xcrun simctl boot "$DEVICE"
+          xcrun simctl bootstatus "$DEVICE" -b
+          APP=$(find build/Build/Products -name "App.app" -maxdepth 3 | head -1)
+          xcrun simctl install "$DEVICE" "$APP"
+          xcrun simctl launch "$DEVICE" com.joel.glycotank
+          mkdir -p shots
+          sleep 15
+          xcrun simctl io "$DEVICE" screenshot shots/01-launch.png
+          sleep 10
+          xcrun simctl io "$DEVICE" screenshot shots/02-after-25s.png
+          xcrun simctl spawn "$DEVICE" log show --last 2m --predicate 'process == "App"' --style compact > shots/app-log.txt || true
+          xcrun simctl list devices | grep Booted > shots/device.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-simulator-screenshots
+          path: shots/
