@@ -52,20 +52,22 @@ export function dayTotals(state, date) {
 // carbohydrate, a low one shifts toward fat), so the level settles where it
 // matches the diet instead of drifting to empty or full.
 // Days before the first entry aren't simulated: the tank starts at 70% then.
+// Days with no meals logged are treated as "not tracked" rather than fasting,
+// so everyday use only applies on days with food logged (training still counts).
 export function glycoSeries(state, endDate) {
   const s = state.settings;
   const dates = [...state.meals, ...state.workouts].map((x) => x.date).filter((d) => d <= endDate).sort();
   const earliest = addDays(endDate, -HISTORY_LIMIT_DAYS);
-  let date = dates.length && dates[0] > earliest ? dates[0] : earliest;
-  if (date > endDate) date = endDate;
+  let date = !dates.length ? endDate : dates[0] > earliest ? dates[0] : earliest;
 
   const series = {};
   let level = s.glycoCap * START_FRACTION;
   for (;;) {
-    const added = state.meals.filter((m) => m.date === date).reduce((t, m) => t + n(m.carbs) * (s.uptakePct / 100), 0);
+    const meals = state.meals.filter((m) => m.date === date);
+    const added = meals.reduce((t, m) => t + n(m.carbs) * (s.uptakePct / 100), 0);
     const training = state.workouts.filter((w) => w.date === date).reduce((t, w) => t + workoutCost(w, s), 0);
     const start = level;
-    const cost = training + everydayUse(start, s);
+    const cost = training + (meals.length ? everydayUse(start, s) : 0);
     level = clamp(start + added - cost, 0, s.glycoCap);
     series[date] = { start, added, training, cost, end: level };
     if (date === endDate) break;

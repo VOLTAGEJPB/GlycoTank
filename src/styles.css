@@ -11,6 +11,9 @@
   --danger: #ff6b6b;
   --radius: 16px;
   --tabbar: 64px;
+  /* Standard safe-area insets, or the values Capacitor injects on Android WebViews that lack them. */
+  --safe-top: max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px));
   color-scheme: dark;
 }
 
@@ -31,7 +34,7 @@ h2 { font-size: 18px; margin-bottom: 10px; }
 
 .topbar {
   position: sticky; top: 0; z-index: 10;
-  padding: calc(env(safe-area-inset-top) + 12px) 18px 12px;
+  padding: calc(var(--safe-top) + 12px) 18px 12px;
   background: rgba(15, 17, 21, 0.88);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
@@ -40,15 +43,15 @@ h2 { font-size: 18px; margin-bottom: 10px; }
 
 main {
   max-width: 720px; margin: 0 auto;
-  padding: 14px 14px calc(var(--tabbar) + env(safe-area-inset-bottom) + 24px);
+  padding: 14px 14px calc(var(--tabbar) + var(--safe-bottom) + 24px);
   outline: none;
 }
 
 #tabs {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
   display: grid; grid-template-columns: repeat(5, 1fr);
-  height: calc(var(--tabbar) + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
+  height: calc(var(--tabbar) + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
   background: rgba(15, 17, 21, 0.94);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-top: 1px solid var(--line);
@@ -184,7 +187,7 @@ summary { cursor: pointer; color: var(--text); font-weight: 600; }
 
 /* Toast and dialogs */
 #toast {
-  position: fixed; left: 50%; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom) + 16px); z-index: 50;
+  position: fixed; left: 50%; bottom: calc(var(--tabbar) + var(--safe-bottom) + 16px); z-index: 50;
   transform: translate(-50%, 10px); opacity: 0; transition: opacity 0.2s, transform 0.2s;
   background: #e8ebf1; color: #0f1115; font-weight: 700; padding: 10px 16px; border-radius: 12px;
   max-width: calc(100% - 32px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);

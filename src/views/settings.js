@@ -76,7 +76,7 @@ export function renderSettings(root, app) {
     <section class="card">
       <h2>Reminders</h2>
       ${remindersSupported ? `
-        <p class="hint">Daily notifications at the times you choose. Leave a time blank to turn it off.</p>
+        <p class="hint">Daily notifications at the times you choose. Leave a time blank to turn it off. On Android, allow notifications and then turn on <em>Alarms &amp; reminders</em> for GlycoTank so they arrive on time.</p>
         <div class="row2">
           ${field("rCheckin", "Morning check-in", 'type="time"', s.reminders.checkin)}
           ${field("rLog", "Log meals & training", 'type="time"', s.reminders.log)}

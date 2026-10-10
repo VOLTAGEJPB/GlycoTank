@@ -33,6 +33,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Daily reminders don't need exact timing; Google Play restricts this permission. -->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+    <!-- Exact alarms keep daily reminders on time. Without them Android may deliver a
+         reminder hours late. Users grant this under "Alarms & reminders". -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 </manifest>

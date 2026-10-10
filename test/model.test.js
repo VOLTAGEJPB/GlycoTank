@@ -57,8 +57,8 @@ test("everyday use scales with how full the tank is", () => {
   // starts at 280 g (70%): uses 150 × 0.7 = 105 g
   assert.equal(series["2026-10-01"].end, 280 + 170 - 105);
   assert.equal(series["2026-10-01"].training, 0);
-  // next day starts at 345 g: uses 150 × 345/400
-  assert.ok(Math.abs(series["2026-10-02"].end - (345 - 150 * (345 / 400))) < 1e-9);
+  // next day has no meals logged, so it isn't drained
+  assert.equal(series["2026-10-02"].end, 345);
 });
 
 test("a steady diet settles at a matching level instead of emptying", () => {
@@ -73,9 +73,21 @@ test("a steady diet settles at a matching level instead of emptying", () => {
   assert.ok(Math.abs(end - (116 / 150) * 400) < 5, `ended at ${end}`);
 });
 
-test("glycogen series with no data still returns the end date", () => {
-  const series = glycoSeries(empty(), "2026-10-09");
+test("a new user with no data starts at 70%, even with everyday use on", () => {
+  const series = glycoSeries(empty({ ...DEFAULT_SETTINGS }), "2026-10-09");
+  assert.deepEqual(Object.keys(series), ["2026-10-09"]);
   assert.equal(series["2026-10-09"].end, 280);
+});
+
+test("days with no meals logged don't drain everyday use, but training still counts", () => {
+  const st = empty({ ...DEFAULT_SETTINGS, dailyUse: 150 });
+  st.meals.push({ date: "2026-10-01", carbs: 200 });
+  st.workouts.push({ date: "2026-10-03", type: "strength", sets: 10 });
+  const series = glycoSeries(st, "2026-10-04");
+  const day1 = series["2026-10-01"].end;
+  assert.equal(series["2026-10-02"].end, day1);
+  assert.equal(series["2026-10-03"].end, day1 - 60);
+  assert.equal(series["2026-10-04"].end, day1 - 60);
 });
 
 test("status bands", () => {

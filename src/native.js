@@ -52,7 +52,9 @@ export async function applyReminders(times) {
   await LocalNotifications.schedule({
     notifications: wanted.map(([k, r]) => {
       const [hour, minute] = times[k].split(":").map(Number);
-      return { ...r, schedule: { on: { hour, minute }, allowWhileIdle: true } };
+      // Exact by default: on Android 12+ the plugin opens the "Alarms & reminders"
+      // setting if needed, and falls back to inexact timing if the user declines.
+      return { ...r, schedule: { on: { hour, minute }, allowWhileIdle: true }, isExactMandatory: false };
     }),
   });
   return true;

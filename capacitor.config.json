@@ -3,6 +3,20 @@
   "appName": "GlycoTank",
   "webDir": "dist",
   "backgroundColor": "#0f1115",
-  "ios": { "contentInset": "never" },
-  "android": { "backgroundColor": "#0f1115" }
+  "ios": {
+    "contentInset": "never"
+  },
+  "android": {
+    "backgroundColor": "#0f1115"
+  },
+  "plugins": {
+    "SystemBars": {
+      "style": "DARK",
+      "initialViewportFitValueHint": "cover"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_glycotank",
+      "iconColor": "#57CC99"
+    }
+  }
 }
