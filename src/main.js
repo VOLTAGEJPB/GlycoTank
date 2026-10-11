@@ -9,6 +9,7 @@ import { renderLog, openLog } from "./views/log.js";
 import { renderCheckin } from "./views/checkin.js";
 import { renderHistory } from "./views/history.js";
 import { renderSettings } from "./views/settings.js";
+import { openOnboarding } from "./views/onboarding.js";
 
 const VIEWS = {
   today: { title: "GlycoTank", render: renderToday },
@@ -70,47 +71,21 @@ $$("#tabs button").forEach((b) =>
   }),
 );
 
-// ---------- Intro ----------
-function showIntro() {
-  const dlg = $("#intro");
-  const slides = $$(".slide", dlg);
-  let i = 0;
-  const show = (dir = "") => {
-    slides.forEach((s, n) => {
-      s.hidden = n !== i;
-      s.classList.remove("from-right", "from-left");
-      if (n === i && dir) s.classList.add(dir);
-    });
-    $$(".dots span", dlg).forEach((d, n) => d.classList.toggle("on", n === i));
-    $("#introBack").disabled = i === 0;
-    $("#introNext").textContent = i === slides.length - 1 ? "Get started" : "Next";
-  };
-  $("#introBack").onclick = () => {
-    i = Math.max(0, i - 1);
-    show("from-left");
-  };
-  $("#introNext").onclick = () => {
-    if (i < slides.length - 1) {
-      i++;
-      return show("from-right");
-    }
-    dlg.close();
-  };
-  dlg.onclose = () => {
-    if (!app.state.meta.introSeen) {
-      app.state.meta.introSeen = true;
-      app.save();
-      app.go("settings", "personalize");
-    }
-  };
-  show();
-  dlg.showModal();
+// ---------- First-run setup ----------
+function showIntro(options) {
+  if (document.getElementById("onboard")) return;
+  openOnboarding(app, { ...options, onFinish: () => app.go("today") });
 }
 
 // Android back button: close any open dialog, then go back to Today, then exit.
 NativeApp.addListener("backButton", () => {
   const open = document.querySelector("dialog[open]");
   if (open) return open.close();
+  const back = document.querySelector("#onboard .ob-back:not([hidden])");
+  if (back) return back.click();
+  const close = document.querySelector("#onboard .ob-close");
+  if (close) return close.click();
+  if (document.getElementById("onboard")) return;
   if (app.current !== "today" || app.editing) {
     app.editing = null;
     return app.go("today");
@@ -156,7 +131,7 @@ function playLaunch(fraction) {
     enterView($("#view"));
     app.revealToday?.();
   }
-  if (!app.state.meta.introSeen || params.has("intro")) showIntro();
+  if (!app.state.meta.introSeen || params.has("intro")) showIntro({ startAt: +(params.get("intro") || 0) });
   if (params.has("demo") && params.get("scroll")) document.querySelectorAll(".card")[+params.get("scroll")]?.scrollIntoView({ block: "start" });
   // Demo only: pre-fill fields for screenshots, e.g. &fill=mName:Chicken bowl|mQuick:650 cal 70c
   if (params.has("demo") && params.get("fill")) {
