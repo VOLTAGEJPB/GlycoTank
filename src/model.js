@@ -252,3 +252,72 @@ export function parseMealText(text) {
   }
   return out;
 }
+
+// ---- Scanning ----
+
+// Pulls calories and macros out of text read from a Nutrition Facts panel by
+// on-device OCR. Handles US labels ("Total Carbohydrate 37g") and EU-style
+// labels ("Carbohydrate 37 g", "250 kcal"). OCR often reads a 0 before "g" as
+// the letter O, so that's corrected first. Missing values come back as null.
+export function parseNutritionLabel(rawText) {
+  const text = rawText
+    .replace(/\r/g, "")
+    .replace(/\b[Oo](?=\s?m?g\b)/g, "0") // "Og" -> "0g"
+    .replace(/(\d),(\d)/g, "$1.$2") // European decimal commas
+    .replace(/[ \t]+/g, " ");
+  const flat = text.replace(/\n/g, " ");
+  const grams = (label) => {
+    const m = flat.match(new RegExp(String.raw`(?:${label})\b[^0-9]{0,25}?(\d+(?:\.\d+)?)\s?g\b`, "i"));
+    return m ? parseFloat(m[1]) : null;
+  };
+  // OCR often reads a label's left column first and the right column after, so
+  // "Calories" and "230" (or "Serving size" and "2/3 cup") can end up far apart.
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  let kcal = null;
+  const kcalMatch = flat.match(/(\d{2,4})\s?kcal/i) || flat.match(/calories\b[^0-9a-z%]{0,6}(\d{2,4})\b(?!\s?(?:m?g|%))/i);
+  if (kcalMatch) kcal = parseInt(kcalMatch[1], 10);
+  else if (/calories/i.test(flat)) {
+    const lone = lines.find((l) => /^\d{2,4}$/.test(l) && +l >= 10 && +l <= 2000);
+    if (lone) kcal = parseInt(lone, 10);
+  }
+  const UNITS = "cups?|tbsps?|tsps?|oz|g|ml|pieces?|bars?|slices?|containers?|packages?|packets?|cans?|bottles?|scoops?|servings?|crackers?|cookies?|chips?";
+  const amount = new RegExp(String.raw`^\d[\d/.\s]*\s?(?:${UNITS})\b`, "i");
+  let serving = flat.match(/serving size\s*:?\s*([^\n]{1,40}?)(?=\s+(?:amount|servings|calories|per\b)|$)/i)?.[1]?.trim() || null;
+  if (!serving || !/\d/.test(serving)) serving = lines.find((l) => amount.test(l) && !/servings? per/i.test(l)) || null;
+  return {
+    kcal,
+    carbs: grams(String.raw`total carbohydrates?|total carbs?|total carb\.?|carbohydrates?|carbs`),
+    protein: grams("protein"),
+    fat: grams(String.raw`total fat|fat`),
+    fiber: grams(String.raw`dietary fiber|dietary fibre|fiber|fibre`),
+    serving,
+  };
+}
+
+// Converts an Open Food Facts product into meal values. Uses per-serving
+// numbers when the product has them, otherwise per 100 g.
+export function fromOpenFoodFacts(product) {
+  if (!product) return null;
+  const nu = product.nutriments || {};
+  const pick = (key, basis) => {
+    const v = nu[`${key}_${basis}`];
+    return v == null || v === "" ? null : Math.round(parseFloat(v) * 10) / 10;
+  };
+  const hasServing = nu["energy-kcal_serving"] != null || nu.carbohydrates_serving != null;
+  const basis = hasServing ? "serving" : "100g";
+  let kcal = pick("energy-kcal", basis);
+  if (kcal == null && nu[`energy_${basis}`] != null) kcal = Math.round(parseFloat(nu[`energy_${basis}`]) / 4.184); // kJ -> kcal
+  const brand = product.brands?.split(",")[0]?.trim();
+  const title = product.product_name?.trim();
+  // Skip the brand when the product name already includes it ("Cheerios" by Cheerios).
+  const name = brand && title && !title.toLowerCase().includes(brand.toLowerCase()) ? `${brand} ${title}` : title || brand;
+  return {
+    name: name || "Scanned item",
+    kcal: kcal == null ? null : Math.round(kcal),
+    carbs: pick("carbohydrates", basis),
+    protein: pick("proteins", basis),
+    fat: pick("fat", basis),
+    fiber: pick("fiber", basis),
+    serving: basis === "serving" ? product.serving_size || "1 serving" : "100 g",
+  };
+}

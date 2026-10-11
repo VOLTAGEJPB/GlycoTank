@@ -64,6 +64,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>GlycoTank uses the camera to scan food barcodes and nutrition labels so it can fill in your meals for you.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>GlycoTank can read a nutrition label from a photo you choose, to fill in your meal for you.</string>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

@@ -1,4 +1,5 @@
 import { localDate, plateMath, parseMealText } from "../model.js";
+import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
 import { uid } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 
@@ -54,6 +55,17 @@ function renderMeal(root, app) {
   root.innerHTML = `
     <section class="card">
       <h2>${m ? "Edit meal" : "Log a meal"}</h2>
+      ${m ? "" : `
+      <div class="scan-row">
+        <button class="btn scan-btn" id="scanBarcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v14H3V5zm3 0h1v14H6V5zm2 0h2v14H8V5zm3 0h1v14h-1V5zm3 0h2v14h-2V5zm3 0h1v14h-1V5zm2 0h2v14h-2V5z"/></svg>${native ? "Scan barcode" : "Look up barcode"}</button>
+        ${native ? `<button class="btn scan-btn" id="scanLabel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM8 9h8v2H8V9zm0 4h6v2H8v-2z"/></svg>Scan label</button>` : ""}
+      </div>
+      <div id="barcodeEntry" class="barcode-entry" ${native ? "hidden" : ""}>
+        <input id="barcodeInput" inputmode="numeric" placeholder="Barcode number, e.g. 016000275287" aria-label="Barcode number">
+        <button class="btn small" id="barcodeGo">Look up</button>
+      </div>
+      ${native ? `<p class="hint scan-alt"><a href="#" id="typeBarcode">Type a barcode</a> · <a href="#" id="pickLabel">Use a photo of a label</a></p>` : ""}
+      <div id="scanResult" class="scan-result" hidden></div>`}
       ${state.mealFavs.length ? select("mFav", "From favorites", [["", "Choose a favorite…"], ...state.mealFavs.map((f, i) => [i, f.name])], "") : ""}
       <div class="row2">
         ${field("mDate", "Date", 'type="date"', v.date)}
@@ -89,6 +101,108 @@ function renderMeal(root, app) {
     for (const [k, id] of Object.entries(ids)) if (p[k] != null) $("#" + id).value = p[k];
     estimate();
   });
+  // ----- Scan to fill -----
+  let scanned = null; // values for one serving, as scanned
+  const fillFromScan = (servings) => {
+    for (const [k, id] of Object.entries(ids)) {
+      const v = scanned[k];
+      $("#" + id).value = v == null ? "" : Math.round(v * servings * 10) / 10;
+    }
+    estimate();
+  };
+  const showScan = (item) => {
+    scanned = item;
+    if (item.name && !$("#mName").value.trim()) $("#mName").value = item.name;
+    const box = $("#scanResult");
+    box.hidden = false;
+    box.innerHTML = `
+      <div class="scan-head"><strong>${esc(item.name || "Nutrition label")}</strong>
+        <span>Per ${esc(item.serving || "serving")} · from ${item.source === "Open Food Facts" ? `<a href="https://world.openfoodfacts.org/product/${esc(item.barcode)}" target="_blank" rel="noopener">Open Food Facts</a>` : "the label"}</span></div>
+      <div class="servings"><span>Servings</span>
+        <button class="icon-btn" data-serv="-0.5" aria-label="Fewer servings">−</button>
+        <input id="servings" type="number" inputmode="decimal" min="0.25" step="0.25" value="1" aria-label="Servings">
+        <button class="icon-btn" data-serv="0.5" aria-label="More servings">+</button></div>
+      <p class="hint">Check the numbers below match your package.</p>`;
+    const input = $("#servings");
+    const apply = () => fillFromScan(Math.max(0.25, num(input) || 1));
+    input.addEventListener("input", apply);
+    box.querySelectorAll("[data-serv]").forEach((b) =>
+      b.addEventListener("click", () => {
+        input.value = Math.max(0.25, (num(input) || 1) + +b.dataset.serv);
+        apply();
+      }),
+    );
+    apply();
+    box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
+  const busy = (btn, on, label) => {
+    if (!btn) return;
+    btn.disabled = on;
+    btn.dataset.label ??= btn.lastChild.nodeValue;
+    btn.lastChild.nodeValue = on ? label : btn.dataset.label;
+  };
+  const report = (e) => {
+    if (e instanceof ScanError) toast(e.message);
+    else {
+      console.error(e);
+      toast("Something went wrong while scanning. Please try again.");
+    }
+  };
+  const lookup = async (code, btn) => {
+    busy(btn, true, "Looking up…");
+    try {
+      showScan(await lookupBarcode(code));
+      success("Found it");
+    } catch (e) {
+      report(e);
+    } finally {
+      busy(btn, false);
+    }
+  };
+  $("#scanBarcode")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    if (!native) return $("#barcodeInput").focus();
+    try {
+      const code = await scanBarcode(() => busy(btn, true, "Setting up scanner…"));
+      busy(btn, false);
+      if (code) await lookup(code, btn);
+    } catch (err) {
+      busy(btn, false);
+      report(err);
+      if (err instanceof ScanError && err.unavailable) {
+        $("#barcodeEntry").hidden = false;
+        $("#barcodeInput").focus();
+      }
+    }
+  });
+  const readLabel = async (fromGallery) => {
+    const btn = $("#scanLabel");
+    try {
+      busy(btn, true, "Reading label…");
+      const item = await scanLabel(fromGallery);
+      if (item) {
+        showScan(item);
+        success("Label read");
+      }
+    } catch (err) {
+      report(err);
+    } finally {
+      busy(btn, false);
+    }
+  };
+  $("#scanLabel")?.addEventListener("click", () => readLabel(false));
+  $("#pickLabel")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    readLabel(true);
+  });
+  $("#typeBarcode")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    $("#barcodeEntry").hidden = false;
+    $("#barcodeInput").focus();
+  });
+  $("#barcodeGo")?.addEventListener("click", (e) => lookup($("#barcodeInput").value, e.currentTarget));
+  $("#barcodeInput")?.addEventListener("keydown", (e) => e.key === "Enter" && lookup(e.target.value, $("#barcodeGo")));
+
   $("#mFav")?.addEventListener("change", (e) => {
     const f = state.mealFavs[e.target.value];
     if (!f) return;

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_SETTINGS, localDate, addDays, workoutCost, glycoSeries, glycoStatus, carbPlan, plannedCost,
-  readiness, baselineRhr, streak, personalize, plateMath, dayTotals, parseMealText,
+  readiness, baselineRhr, streak, personalize, plateMath, dayTotals, parseMealText, parseNutritionLabel, fromOpenFoodFacts,
 } from "../src/model.js";
 
 // Most tests turn everyday use off to check one effect at a time.
@@ -179,4 +179,69 @@ test("plate math", () => {
   assert.deepEqual(plateMath(100, 20, "kg").plates, [25, 15]);
   assert.deepEqual(plateMath(45, 45, "lb").plates, []);
   assert.equal(plateMath(136, 45, "lb").remainder, 1);
+});
+
+test("nutrition label OCR: a US Nutrition Facts panel", () => {
+  const ocr = `Nutrition Facts
+8 servings per container
+Serving size 2/3 cup (55g)
+Amount per serving
+Calories
+230
+% Daily Value*
+Total Fat 8g
+10%
+Saturated Fat 1g
+Trans Fat Og
+Cholesterol Omg
+Sodium 160mg
+Total Carbohydrate 37g
+Dietary Fiber 4g
+Total Sugars 12g
+Includes 10g Added Sugars
+Protein 3g`;
+  assert.deepEqual(parseNutritionLabel(ocr), { kcal: 230, carbs: 37, protein: 3, fat: 8, fiber: 4, serving: "2/3 cup (55g)" });
+});
+
+test("nutrition label OCR: an EU-style label with kcal and decimal commas", () => {
+  const ocr = "Nutrition information per 100g Energy 1046 kJ / 250 kcal Fat 9,5 g of which saturates 2 g Carbohydrate 31,2 g of which sugars 4 g Fibre 3 g Protein 8,4 g Salt 1,1 g";
+  const r = parseNutritionLabel(ocr);
+  assert.equal(r.kcal, 250);
+  assert.equal(r.fat, 9.5);
+  assert.equal(r.carbs, 31.2);
+  assert.equal(r.fiber, 3);
+  assert.equal(r.protein, 8.4);
+});
+
+test("nutrition label OCR: nothing recognizable", () => {
+  assert.deepEqual(parseNutritionLabel("a blurry photo of a cereal box"), { kcal: null, carbs: null, protein: null, fat: null, fiber: null, serving: null });
+});
+
+test("Open Food Facts: per-serving values preferred", () => {
+  const r = fromOpenFoodFacts({
+    product_name: "Original Cheerios", brands: "General Mills, Cheerios", serving_size: "1.5 cup (39 g)",
+    nutriments: { "energy-kcal_serving": 140, carbohydrates_serving: 29, proteins_serving: 5, fat_serving: 2.5, fiber_serving: 4, "energy-kcal_100g": 359 },
+  });
+  assert.deepEqual(r, { name: "General Mills Original Cheerios", kcal: 140, carbs: 29, protein: 5, fat: 2.5, fiber: 4, serving: "1.5 cup (39 g)" });
+});
+
+test("Open Food Facts: falls back to per 100 g and converts kJ", () => {
+  const r = fromOpenFoodFacts({ product_name: "Oat drink", nutriments: { energy_100g: 192, carbohydrates_100g: 6.6, proteins_100g: 1, fat_100g: 1.5 } });
+  assert.equal(r.serving, "100 g");
+  assert.equal(r.kcal, 46);
+  assert.equal(r.carbs, 6.6);
+  assert.equal(r.fiber, null);
+  assert.equal(fromOpenFoodFacts(null), null);
+});
+
+test("Open Food Facts: brand isn't repeated when the name already includes it", () => {
+  assert.equal(fromOpenFoodFacts({ product_name: "Cheerios", brands: "Cheerios", nutriments: { "energy-kcal_serving": 140 } }).name, "Cheerios");
+  assert.equal(fromOpenFoodFacts({ product_name: "Greek Yogurt", brands: "Fage", nutriments: { "energy-kcal_100g": 97 } }).name, "Fage Greek Yogurt");
+  assert.equal(fromOpenFoodFacts({ brands: "Kind", nutriments: { "energy-kcal_100g": 500 } }).name, "Kind");
+});
+
+test("nutrition label OCR: real on-device output with columns read separately", () => {
+  // Exact text ML Kit returned for a photographed US label on the Android emulator.
+  const ocr = "Nutrition Facts\n8 servings per Container\nServing size\nAmount per serving\nCalories\nTotal Fat 8g\nSaturated Fat 1g\nTrans Fat Og\nCholesterol Omg\nSodium 160mg\nTotal Carbohydrate 37g\nDietary Fiber 4g\nTotal Sugars 12g\nProtein 3g\n2/3 cup (55g)\n230\n% Daily Value*\n10%\n5%\n0%\n7%\n13%\n14%";
+  assert.deepEqual(parseNutritionLabel(ocr), { kcal: 230, carbs: 37, protein: 3, fat: 8, fiber: 4, serving: "2/3 cup (55g)" });
 });

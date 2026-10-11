@@ -51,6 +51,11 @@ PERSONAL TARGETS
 • Built on established formulas (Mifflin-St Jeor energy needs and exercise METs)
 • Fine-tune every value yourself
 
+SCAN TO LOG
+• Scan a barcode to look up the product and fill in your meal
+• Snap a Nutrition Facts label and GlycoTank reads it right on your phone
+• Adjust servings and every number updates
+
 FAST LOGGING
 • Quick entry: type "650 cal 70c 45p 18f" and the fields fill themselves
 • Favorite meals and workouts
@@ -59,7 +64,7 @@ FAST LOGGING
 
 PRIVATE BY DESIGN
 • No account, no ads, no tracking
-• Your data stays on your phone and never touches our servers
+• Your data stays on your phone and never touches our servers (barcode lookups send only the barcode number to the open food database)
 • Back up or export to a spreadsheet anytime
 
 GlycoTank provides general fitness and nutrition estimates. It is not a medical device and does not provide medical advice. Talk to a doctor or dietitian before making big changes to your diet or training, especially if you have diabetes or another health condition.
@@ -79,7 +84,9 @@ First release of GlycoTank.
 
 ## Questionnaires (answers)
 
-**Google Play Data safety:** the app collects no data and shares no data. Data isn't encrypted in transit because none is transmitted. Users can request deletion: the in-app "Delete all data" option, or uninstall.
+**Google Play Data safety:** the app collects no data and shares no data. The only network request is an optional barcode lookup sending a product barcode number (not user data) over HTTPS to Open Food Facts. Users can delete everything in the app ("Delete all data") or by uninstalling.
+
+**Camera:** used only when the user taps Scan barcode or Scan label. Label photos are processed on-device and not stored or uploaded.
 
 **Apple App Privacy ("nutrition label"):** Data Not Collected.
 

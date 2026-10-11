@@ -87,7 +87,7 @@ export function renderSettings(root, app) {
 
     <section class="card">
       <h2>Your data</h2>
-      <p class="hint">GlycoTank has no accounts or servers. Your data lives only on this device, so export a backup now and then.</p>
+      <p class="hint">GlycoTank has no accounts or servers. Your data lives only on this device, so export a backup now and then. Label scans are read on your phone; barcode lookups send only the barcode number to Open Food Facts.</p>
       <div class="actions">
         <button class="btn" id="dJson">Back up (JSON)</button>
         <button class="btn" id="dCsv">Export spreadsheet (CSV)</button>
@@ -100,6 +100,7 @@ export function renderSettings(root, app) {
       <h2>About</h2>
       <p class="hint">GlycoTank ${esc(app.version)} · Made by Joel Perez.</p>
       <p class="hint">GlycoTank provides general fitness and nutrition estimates. It is not a medical device and does not give medical advice. Talk to a doctor or dietitian before making big changes to your diet or training, especially if you have diabetes or another health condition.</p>
+      <p class="hint">Barcode product data from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, available under the Open Database License.</p>
       <div class="actions"><button class="btn ghost" id="aIntro">Replay the intro</button></div>
     </section>`;
 

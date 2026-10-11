@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const CONTACT = "joel.perez5588@gmail.com";
-const UPDATED = "October 9, 2026";
+const UPDATED = "October 11, 2026";
 
 const css = `
 :root{--bg:#0f1115;--card:#161a23;--text:#e8ebf1;--muted:#98a2b3;--line:#262c3d;--accent:#57cc99}
@@ -80,6 +80,7 @@ page(
 <div class="card"><h3>Carb planner</h3><p>Enter tomorrow's training and get a suggestion for how many carbs to eat today.</p></div>
 <div class="card"><h3>Readiness</h3><p>A 10-second morning check-in scores your readiness from sleep, resting heart rate and mood.</p></div>
 <div class="card"><h3>Personal targets</h3><p>Calories, protein, carbs, fat and fiber set from your body, goal and training.</p></div>
+<div class="card"><h3>Scan to log</h3><p>Scan a barcode or snap the Nutrition Facts label and your meal fills itself in.</p></div>
 <div class="card"><h3>Fast logging</h3><p>Favorites, full workout sessions, quick macro entry, a rest timer and plate math.</p></div>
 <div class="card"><h3>Private by design</h3><p>No account, no ads, no tracking. Your data stays on your phone.</p></div>
 </div>
@@ -99,7 +100,11 @@ page(
 <p>Everything you enter in GlycoTank (meals, workouts, morning check-ins including sleep and resting heart rate, your profile details such as weight, height, age and sex, and your settings) is stored only on your device, in the app's private storage. It is never sent to us or to anyone else. We have no servers that receive app data and no way to see what you log.</p>
 
 <h2>Information we collect</h2>
-<p>None. GlycoTank has no user accounts, no analytics, no advertising, no crash reporting and no third-party tracking tools. The app works fully offline.</p>
+<p>None. GlycoTank has no user accounts, no analytics, no advertising, no crash reporting and no third-party tracking tools. Everything except barcode lookups works fully offline.</p>
+
+<h2>Scanning food</h2>
+<p><strong>Nutrition label scans</strong> are read entirely on your device. The photo is not uploaded anywhere.</p>
+<p><strong>Barcode lookups</strong> send only the product's barcode number to <a href="https://world.openfoodfacts.org">Open Food Facts</a>, a free, open food database, to fetch the product's name and nutrition information. No other information about you or your data is sent. Open Food Facts receives the request like any website visit, under <a href="https://world.openfoodfacts.org/privacy">its own privacy policy</a>.</p>
 
 <h2>Exports and backups</h2>
 <p>You can export your data as a backup file or spreadsheet from Settings. The app hands the file to your phone's share sheet, and you choose where it goes (for example Files, email or a cloud drive). Once you share a file, it's handled by the app or service you chose under that service's privacy policy.</p>
