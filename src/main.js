@@ -1,6 +1,9 @@
 import "./styles.css";
 import { App as NativeApp } from "@capacitor/app";
-import { loadState, saveState, flush } from "./store.js";
+import { loadState, saveState, saveQuietly, resetState, flush, emptyState, onSaved } from "./store.js";
+import * as auth from "./auth.js";
+import { initSync, scheduleSync, syncNow } from "./sync.js";
+import { openAuth } from "./views/auth.js";
 import { $, $$ } from "./ui.js";
 import { enterView, haptic, reducedMotion } from "./motion.js";
 import { glycoSeries, localDate } from "./model.js";
@@ -10,6 +13,9 @@ import { renderCheckin } from "./views/checkin.js";
 import { renderHistory } from "./views/history.js";
 import { renderSettings } from "./views/settings.js";
 import { openOnboarding } from "./views/onboarding.js";
+
+// Accounts are required once the cloud backend is configured (see cloud-config.js).
+const ACCOUNT_REQUIRED = true;
 
 const VIEWS = {
   today: { title: "GlycoTank", render: renderToday },
@@ -26,6 +32,13 @@ const app = {
   editing: null,
   save() {
     saveState(app.state);
+  },
+  saveQuietly() {
+    saveQuietly(app.state);
+  },
+  // Re-render the current screen after data changed in the background (sync).
+  refresh() {
+    if (!app.editing && !document.querySelector("#onboard, #auth")) app.go(app.current);
   },
   go(view, section) {
     if (view === "log") openLog(app, section, app.editing);
@@ -45,6 +58,16 @@ const app = {
     saveState(next);
     flush();
     app.go("today");
+  },
+  // Sign out: clear this device and show the sign-in screen again.
+  async signOut() {
+    await syncNow();
+    await auth.signOut();
+    app.state = emptyState();
+    resetState(app.state);
+    await flush();
+    app.go("today");
+    await requireAccount();
   },
   showIntro,
 };
@@ -81,6 +104,7 @@ function showIntro(options) {
 NativeApp.addListener("backButton", () => {
   const open = document.querySelector("dialog[open]");
   if (open) return open.close();
+  if (document.getElementById("auth")) return; // sign-in can't be skipped
   const back = document.querySelector("#onboard .ob-back:not([hidden])");
   if (back) return back.click();
   const close = document.querySelector("#onboard .ob-close");
@@ -115,6 +139,25 @@ function playLaunch(fraction) {
   );
 }
 
+// ---------- Accounts ----------
+// Shows sign-in until there's a session, then pulls the account's data. A
+// different account than the one this device last synced starts from empty.
+async function requireAccount() {
+  if (!auth.configured()) return;
+  let session = auth.current();
+  if (!session && ACCOUNT_REQUIRED) session = await openAuth();
+  if (!session) return;
+  const st = app.state;
+  if (st.sync?.owner && st.sync.owner !== session.sub) {
+    app.state = emptyState();
+    resetState(app.state);
+  }
+  app.state.sync = { ...(app.state.sync || { cursor: 0, pushedAt: 0 }), owner: session.sub };
+  app.saveQuietly();
+  await syncNow();
+  app.go(app.current);
+}
+
 // ---------- Start ----------
 (async () => {
   app.state = location.search.includes("demo") ? (await import("./demo.js")).demoState() : await loadState();
@@ -130,6 +173,12 @@ function playLaunch(fraction) {
     app.launching = false;
     enterView($("#view"));
     app.revealToday?.();
+  }
+  if (!params.has("demo")) {
+    await auth.restore();
+    initSync(app);
+    onSaved(scheduleSync);
+    await requireAccount();
   }
   if (!app.state.meta.introSeen || params.has("intro")) showIntro({ startAt: +(params.get("intro") || 0) });
   if (params.has("demo") && params.get("scroll")) document.querySelectorAll(".card")[+params.get("scroll")]?.scrollIntoView({ block: "start" });

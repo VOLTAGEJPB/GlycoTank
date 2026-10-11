@@ -2,6 +2,18 @@ import { personalize, DEFAULT_SETTINGS, localDate } from "../model.js";
 import { normalize, emptyState } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 import { shareFile, toCsv, applyReminders, remindersSupported } from "../native.js";
+import * as auth from "../auth.js";
+import { status as syncStatus, syncNow, onStatus, deleteCloudAccount } from "../sync.js";
+
+function syncText() {
+  if (syncStatus.syncing) return "Syncing…";
+  if (syncStatus.error === "offline") return "Offline. Changes will sync when you're back online.";
+  if (syncStatus.error) return "Couldn't sync. We'll keep trying.";
+  if (!syncStatus.lastSync) return "Not synced yet";
+  const mins = Math.round((Date.now() - syncStatus.lastSync) / 60000);
+  return mins < 1 ? "Synced just now" : `Synced ${mins} min ago`;
+}
+let statusHooked = false;
 
 const TUNABLE = [
   ["kcalTarget", "Calories / day", 1],
@@ -20,7 +32,20 @@ export function renderSettings(root, app) {
   const s = state.settings;
   const p = { weightUnits: s.units, heightUnits: s.units === "kg" ? "cm" : "ftin", goal: "maintain", sex: "m", daysPerWeek: 3, setsPerSession: 12, cardioMinsPerWeek: 60, cardioIntensity: 3, ...state.profile };
 
+  const session = auth.current();
   root.innerHTML = `
+    ${session ? `
+    <section class="card" id="account">
+      <h2>Account</h2>
+      <p class="hint">Signed in as <strong>${esc(session.email)}</strong>. Your data is backed up and syncs to any device you sign in on.</p>
+      <div class="sync-line"><span class="sync-dot ${syncStatus.error ? "err" : ""}"></span><span id="syncText">${esc(syncText())}</span></div>
+      <div class="actions">
+        <button class="btn" id="acSync">Sync now</button>
+        <button class="btn ghost" id="acSignOut">Sign out</button>
+        <button class="btn danger" id="acDelete">Delete account</button>
+      </div>
+    </section>` : ""}
+
     <section class="card" id="personalize">
       <h2>Personalize your targets</h2>
       <p class="hint">Answer a few questions and we'll estimate your calories, macros and tank settings. Everything stays on this device.</p>
@@ -205,11 +230,42 @@ export function renderSettings(root, app) {
     }
   });
   $("#dClear").addEventListener("click", async () => {
-    if (!(await confirmDialog("Delete all your meals, workouts, check-ins and settings from this device? This can't be undone."))) return;
+    if (!(await confirmDialog(`Delete all your meals, workouts, check-ins and settings${auth.current() ? " from this device and your account" : " from this device"}? This can't be undone.`))) return;
     app.replaceState(emptyState());
     toast("All data deleted");
   });
   $("#aIntro").addEventListener("click", () => app.showIntro());
+
+  // ----- Account -----
+  if (!statusHooked) {
+    statusHooked = true;
+    onStatus(() => {
+      const el = document.getElementById("syncText");
+      if (el) el.textContent = syncText();
+      document.querySelector(".sync-dot")?.classList.toggle("err", !!syncStatus.error);
+    });
+  }
+  $("#acSync")?.addEventListener("click", async () => {
+    await syncNow();
+    toast(syncStatus.error ? syncText() : "Up to date");
+  });
+  $("#acSignOut")?.addEventListener("click", async () => {
+    if (!(await confirmDialog("Sign out? Your data stays safe in your account and is removed from this device.", "Sign out"))) return;
+    await app.signOut();
+  });
+  $("#acDelete")?.addEventListener("click", async () => {
+    if (!(await confirmDialog("Delete your account? This permanently deletes your account and all your data from our servers and this device. It can't be undone."))) return;
+    if (!(await confirmDialog(`Last check: delete ${session.email} and everything in it?`, "Delete forever"))) return;
+    try {
+      await deleteCloudAccount();
+      await auth.signOut().catch(() => {});
+      toast("Your account has been deleted");
+      await app.signOut();
+    } catch (e) {
+      console.error(e);
+      toast("Couldn't delete your account. Check your connection and try again.");
+    }
+  });
 }
 
 function shareError(e) {

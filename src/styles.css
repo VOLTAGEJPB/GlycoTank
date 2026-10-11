@@ -282,14 +282,14 @@ dialog[open]::backdrop { animation: fade-in-backdrop 0.3s ease; }
 
 /* ===================== First-run setup ===================== */
 body.onboarding { overflow: hidden; }
-#onboard {
+#onboard, #auth {
   position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column;
   background: radial-gradient(120% 50% at 50% 0%, #17271f 0%, var(--bg) 60%);
   padding: calc(var(--safe-top) + 10px) 0 calc(var(--safe-bottom) + 14px);
   animation: fade-in-ob 0.35s ease;
   transition: opacity 0.35s ease, transform 0.35s var(--ease);
 }
-#onboard.out { opacity: 0; transform: scale(1.02); }
+#onboard.out, #auth.out { opacity: 0; transform: scale(1.02); }
 @keyframes fade-in-ob { from { opacity: 0; } }
 .ob-top { display: flex; align-items: center; gap: 10px; padding: 0 14px; max-width: 560px; width: 100%; margin: 0 auto; }
 .ob-back { font-size: 30px; line-height: 1; color: var(--text); width: 36px; }
@@ -367,3 +367,15 @@ body.onboarding { overflow: hidden; }
 .servings input { width: 72px; text-align: center; min-height: 40px; padding: 6px; }
 .servings .icon-btn { width: 40px; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); font-size: 20px; }
 .scan-result .hint { margin: 8px 0 0; font-size: 13px; }
+
+/* Sign-in screen */
+#auth .ob-top { min-height: 20px; }
+.pw { display: flex; gap: 8px; }
+.pw input { flex: 1; }
+.pw-toggle { flex: none; background: none; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-weight: 700; padding: 0 14px; cursor: pointer; }
+.code-input { font-size: 26px; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
+.form-error { background: #2a1517; border: 1px solid #4a2a2e; color: #ffb4b4; border-radius: 12px; padding: 10px 14px; margin: 6px 0 0; }
+.btn.social { width: 100%; margin-top: 10px; min-height: 52px; font-size: 17px; background: #e8ebf1; color: #0f1115; border-color: #e8ebf1; }
+.sync-line { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.sync-dot.err { background: var(--warn); }

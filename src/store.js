@@ -5,6 +5,7 @@
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { DEFAULT_SETTINGS } from "./model.js";
+import { snapshot, stampChanges } from "./sync-model.js";
 
 const KEY = "glycotank.v2";
 const LEGACY_KEY = "glycotank"; // data written by the original web/Android app
@@ -21,6 +22,9 @@ export function emptyState() {
     profile: {},
     settings: structuredClone(DEFAULT_SETTINGS),
     meta: { introSeen: false, personalized: false },
+    deleted: {},
+    docStamps: {},
+    sync: { cursor: 0, pushedAt: 0 },
   };
 }
 
@@ -61,10 +65,24 @@ export function normalize(raw) {
     profile: raw.profile && typeof raw.profile === "object" ? raw.profile : {},
     settings,
     meta: { ...base.meta, ...(raw.meta || {}), introSeen: legacy ? true : !!raw.meta?.introSeen },
+    // Sync bookkeeping (see sync-model.js); kept on the device only.
+    deleted: raw.deleted && typeof raw.deleted === "object" ? raw.deleted : {},
+    docStamps: raw.docStamps && typeof raw.docStamps === "object" ? raw.docStamps : {},
+    sync: raw.sync && typeof raw.sync === "object" ? raw.sync : { cursor: 0, pushedAt: 0 },
   };
 }
 
+let snap = null; // what was last saved, to detect changes for sync
+let afterSave = () => {};
+export const onSaved = (fn) => (afterSave = fn);
+
 export async function loadState() {
+  const state = await readState();
+  snap = stampChanges(state, null);
+  return state;
+}
+
+async function readState() {
   try {
     const current = await readRaw(KEY);
     if (current) return normalize(JSON.parse(current));
@@ -84,7 +102,26 @@ export async function loadState() {
 let timer = null;
 let pending = null;
 
+// Saves after a local change: stamps what changed so it syncs.
 export function saveState(state) {
+  snap = stampChanges(state, snap);
+  afterSave();
+  queue(state);
+}
+
+// Saves without stamping, e.g. after applying changes downloaded from the cloud.
+export function saveQuietly(state) {
+  snap = snapshot(state);
+  queue(state);
+}
+
+// Replaces everything (sign-out, restore, account switch) without syncing it as edits.
+export function resetState(state) {
+  snap = stampChanges(state, null);
+  queue(state);
+}
+
+function queue(state) {
   pending = state;
   clearTimeout(timer);
   timer = setTimeout(flush, 300);
