@@ -5,6 +5,6 @@ export const CLOUD = {
   userPoolId: "us-east-1_5uevwGzlu",
   clientId: "3pg3vh8jnchs93cps1h1gjlfts",
   authDomain: "https://glycotank-auth.auth.us-east-1.amazoncognito.com",
-  // Social sign-in buttons appear once each provider is set up in Cognito.
-  providers: [],
+  // Social sign-in buttons shown in the app (set up in backend/deploy.ps1).
+  providers: ["Google"],
 };
