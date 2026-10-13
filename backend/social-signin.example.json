@@ -1,0 +1,8 @@
+{
+  "GoogleClientId": "1234567890-abc.apps.googleusercontent.com",
+  "GoogleClientSecret": "GOCSPX-...",
+  "AppleServicesId": "com.joel.glycotank.signin",
+  "AppleTeamId": "ABCDE12345",
+  "AppleKeyId": "XYZ987WVU6",
+  "ApplePrivateKeyFile": "C:\Users\you\AppData\Local\GlycoTank-signing\AuthKey_XYZ987WVU6.p8"
+}

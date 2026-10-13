@@ -1,7 +1,6 @@
 // Sign-in / create-account screen shown before the app when an account is needed.
 
 import * as auth from "../auth.js";
-import { CLOUD } from "../cloud-config.js";
 import { $, $$, esc, toast } from "../ui.js";
 import { haptic } from "../motion.js";
 
@@ -9,6 +8,10 @@ const TANK = `<svg viewBox="0 0 120 160" aria-hidden="true"><defs><clipPath id="
   <rect x="44" y="5" width="32" height="13" rx="5" fill="#3a4357"/><rect x="14" y="18" width="92" height="132" rx="24" fill="#20283a"/>
   <g clip-path="url(#auClip)"><path class="ob-wave" d="M-120 70 q30 -9 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 V220 H-120 Z" fill="#57cc99"/></g>
   <rect x="14" y="18" width="92" height="132" rx="24" fill="none" stroke="#e8ebf1" stroke-width="7"/></svg>`;
+
+// Brand marks as required by Apple's and Google's sign-in button guidelines.
+const APPLE = `<svg viewBox="0 0 17 20" aria-hidden="true"><path fill="currentColor" d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 2 5.8 1.1 7.4c-1.8 3.2-.5 7.9 1.3 10.5.9 1.3 1.9 2.7 3.2 2.6 1.3-.1 1.8-.8 3.3-.8s2 .8 3.4.8c1.4 0 2.3-1.3 3.1-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.7-1-2.7-4.3zM11.6 3c.7-.9 1.2-2 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/></svg>`;
+const GOOGLE = `<svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 5.9-2.2l-2.9-2.2c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H1v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M4 10.8a5.4 5.4 0 0 1 0-3.5V5H1a9 9 0 0 0 0 8.1l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 1 5l3 2.3c.7-2.1 2.7-3.7 5-3.7z"/></svg>`;
 
 const passwordField = (id, label, autocomplete) => `
   <label class="field"><span>${label}</span>
@@ -26,6 +29,7 @@ export function openAuth() {
     document.body.appendChild(root);
     document.body.classList.add("onboarding");
 
+    const social = auth.socialProviders();
     let screen = "start";
     let email = "";
     let pendingPassword = "";
@@ -35,8 +39,10 @@ export function openAuth() {
         <div class="ob-hero">${TANK}</div>
         <h2>Welcome to GlycoTank</h2>
         <p class="ob-lead">Create a free account so your meals, training and progress are backed up and available on any device.</p>
-        ${CLOUD.providers.includes("SignInWithApple") ? `<button class="btn social" data-provider="SignInWithApple"> Continue with Apple</button>` : ""}
-        ${CLOUD.providers.includes("Google") ? `<button class="btn social" data-provider="Google">Continue with Google</button>` : ""}`,
+        ${social.length ? `<div class="social-list">
+          ${social.includes("SignInWithApple") ? `<button class="btn social apple" data-provider="SignInWithApple">${APPLE}<span>Continue with Apple</span></button>` : ""}
+          ${social.includes("Google") ? `<button class="btn social google" data-provider="Google">${GOOGLE}<span>Continue with Google</span></button>` : ""}
+          <p class="or"><span>or use your email</span></p></div>` : ""}`,
       signup: () => `
         <h2>Create your account</h2>
         <p class="ob-sub">We'll email you a code to confirm it's you.</p>
@@ -102,7 +108,19 @@ export function openAuth() {
         email = $("#auEmail", root).value;
         go("forgot");
       });
-      $$("[data-provider]", root).forEach((b) => b.addEventListener("click", () => toast("Coming soon")));
+      $$("[data-provider]", root).forEach((b) =>
+        b.addEventListener("click", () =>
+          run(b, async () => {
+            try {
+              await auth.signInWithProvider(b.dataset.provider);
+            } catch (e) {
+              if (e.code === "Cancelled") return;
+              throw e;
+            }
+            done();
+          }),
+        ),
+      );
       // On the start screen, the ghost button means "go to sign in".
       if (screen === "start") $('[data-act="signin"]', root).dataset.act = "toSignin";
       // Only on mouse devices: on Android, focusing a field from code leaves it
@@ -126,7 +144,7 @@ export function openAuth() {
       showError("");
       if (btn) {
         btn.disabled = true;
-        btn.dataset.label = btn.textContent;
+        btn.dataset.label = btn.innerHTML; // keeps the Apple/Google logo
         btn.textContent = "Please wait…";
       }
       try {
@@ -140,7 +158,7 @@ export function openAuth() {
       } finally {
         if (btn && btn.isConnected) {
           btn.disabled = false;
-          btn.textContent = btn.dataset.label;
+          btn.innerHTML = btn.dataset.label;
         }
       }
     }

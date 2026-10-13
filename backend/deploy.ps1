@@ -29,11 +29,33 @@ if ($LASTEXITCODE -ne 0) { throw "package failed" }
 # Send account emails through SES once the domain is verified (DNS records in
 # Cloudflare); until then Cognito's built-in sender is used.
 $EmailDomain = "glycotank.voltagejpb.com"
+# SES must also be out of the sandbox: in it, mail only reaches pre-verified
+# addresses, so new users would never get their sign-up code.
 $verified = aws sesv2 get-email-identity --email-identity $EmailDomain --region $Region --query VerifiedForSendingStatus --output text 2>$null
-if ($verified -eq "True") { Write-Host "Sending account emails from $EmailDomain via SES" } else { Write-Host "$EmailDomain not verified in SES yet; using Cognito's built-in email"; $EmailDomain = "" }
+$production = aws sesv2 get-account --region $Region --query ProductionAccessEnabled --output text 2>$null
+if ($verified -eq "True" -and $production -eq "True") { Write-Host "Sending account emails from $EmailDomain via SES" }
+else { Write-Host "SES not ready (domain verified: $verified, production access: $production); using Cognito's built-in email"; $EmailDomain = "" }
 
-aws cloudformation deploy --template-file $packaged --stack-name $Stack --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $Region --no-fail-on-empty-changeset --parameter-overrides "EmailDomain=$EmailDomain"
-if ($LASTEXITCODE -ne 0) { throw "deploy failed" }
+# Google / Apple sign-in keys live outside the repo, in
+# %LOCALAPPDATA%\GlycoTank-signing\social-signin.json (see backend/social-signin.example.json).
+# Missing or blank values leave that provider off.
+$params = @{ EmailDomain = $EmailDomain }
+$socialFile = Join-Path $env:LOCALAPPDATA "GlycoTank-signing\social-signin.json"
+if (Test-Path $socialFile) {
+  $social = Get-Content $socialFile -Raw | ConvertFrom-Json
+  foreach ($k in "GoogleClientId", "GoogleClientSecret", "AppleServicesId", "AppleTeamId", "AppleKeyId") { if ($social.$k) { $params[$k] = "$($social.$k)".Trim() } }
+  if ($social.ApplePrivateKeyFile -and (Test-Path $social.ApplePrivateKeyFile)) { $params.ApplePrivateKey = (Get-Content $social.ApplePrivateKeyFile -Raw).Trim() }
+}
+Write-Host ("Google sign-in: " + [bool]$params.GoogleClientId + ", Apple sign-in: " + [bool]$params.AppleServicesId)
+# Passed as a JSON file so the multi-line Apple key survives intact.
+$paramFile = Join-Path $env:TEMP "glycotank-params.json"
+$list = @($params.GetEnumerator() | ForEach-Object { @{ ParameterKey = $_.Key; ParameterValue = "$($_.Value)" } })
+[System.IO.File]::WriteAllText($paramFile, (ConvertTo-Json -InputObject $list -Depth 3), (New-Object System.Text.UTF8Encoding $false))
+
+aws cloudformation deploy --template-file $packaged --stack-name $Stack --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $Region --no-fail-on-empty-changeset --parameter-overrides "file://$paramFile"
+$deployExit = $LASTEXITCODE
+Remove-Item $paramFile -ErrorAction SilentlyContinue
+if ($deployExit -ne 0) { throw "deploy failed" }
 
 $out = @{}
 (aws cloudformation describe-stacks --stack-name $Stack --region $Region --query "Stacks[0].Outputs" --output json | ConvertFrom-Json) | ForEach-Object { $out[$_.OutputKey] = $_.OutputValue }
@@ -46,8 +68,8 @@ export const CLOUD = {
   userPoolId: "$($out.UserPoolId)",
   clientId: "$($out.AppClientId)",
   authDomain: "$($out.AuthDomain)",
-  // Social sign-in buttons appear once each provider is set up in Cognito.
-  providers: [],
+  // Social sign-in buttons shown in the app (set up in backend/deploy.ps1).
+  providers: [$((($out.Providers -split ",") | Where-Object { $_ } | ForEach-Object { '"' + $_ + '"' }) -join ", ")],
 };
 "@
 # UTF-8 without a byte-order mark (Set-Content -Encoding utf8 adds one in PowerShell 5.1).

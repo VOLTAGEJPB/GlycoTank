@@ -132,6 +132,85 @@ export async function idToken() {
   }
 }
 
+// ---- Google and Apple sign-in ------------------------------------------------
+// Cognito's hosted sign-in, opened in the system browser (Custom Tabs /
+// SFSafariViewController; Google refuses embedded web views). Authorization
+// code flow with PKCE; the browser returns to the app via glycotank://auth.
+
+const REDIRECT = "glycotank://auth";
+const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const random = (n) => b64url(crypto.getRandomValues(new Uint8Array(n)));
+
+export const socialProviders = () => (native && CLOUD.authDomain ? CLOUD.providers : []);
+
+export async function signInWithProvider(provider, retried = false) {
+  const { Browser } = await import("@capacitor/browser");
+  const { App } = await import("@capacitor/app");
+  const verifier = random(48);
+  const state = random(16);
+  const challenge = b64url(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)));
+  const url =
+    `${CLOUD.authDomain}/oauth2/authorize?` +
+    new URLSearchParams({
+      identity_provider: provider,
+      response_type: "code",
+      client_id: CLOUD.clientId,
+      redirect_uri: REDIRECT,
+      scope: "openid email profile",
+      state,
+      code_challenge: challenge,
+      code_challenge_method: "S256",
+    });
+
+  const params = await new Promise((resolve, reject) => {
+    let done = false;
+    const finish = (fn, v) => {
+      if (done) return;
+      done = true;
+      urlListener.then((l) => l.remove());
+      closedListener.then((l) => l.remove());
+      fn(v);
+    };
+    const urlListener = App.addListener("appUrlOpen", ({ url }) => {
+      if (!url.startsWith(REDIRECT)) return;
+      Browser.close().catch(() => {});
+      finish(resolve, new URL(url.replace(REDIRECT, "https://app/auth")).searchParams);
+    });
+    // The user closed the browser. On Android this can arrive just before the
+    // redirect, so give the redirect a moment to win.
+    const closedListener = Browser.addListener("browserFinished", () =>
+      setTimeout(() => finish(reject, new AuthError("Sign-in was cancelled.", "Cancelled")), 1500),
+    );
+    Browser.open({ url }).catch((e) => finish(reject, e));
+  });
+
+  const error = params.get("error_description") || params.get("error");
+  if (error) {
+    // Cognito rejects the first sign-in right after linking a Google/Apple
+    // login to an existing account; the second attempt succeeds.
+    if (/already found an entry for username/i.test(error) && !retried) return signInWithProvider(provider, true);
+    if (params.get("error") === "access_denied") throw new AuthError("Sign-in was cancelled.", "Cancelled");
+    throw new AuthError("Couldn't sign in. Please try again.", "OAuth");
+  }
+  if (params.get("state") !== state) throw new AuthError("Couldn't sign in. Please try again.", "State");
+
+  let res;
+  try {
+    res = await fetch(`${CLOUD.authDomain}/oauth2/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ grant_type: "authorization_code", client_id: CLOUD.clientId, code: params.get("code"), redirect_uri: REDIRECT, code_verifier: verifier }),
+    });
+  } catch {
+    throw new AuthError("Can't reach the server. Check your internet connection.", "Network");
+  }
+  const t = await res.json().catch(() => ({}));
+  if (!res.ok) throw new AuthError("Couldn't sign in. Please try again.", t.error || "Token");
+  session = fromTokens({ IdToken: t.id_token, AccessToken: t.access_token, RefreshToken: t.refresh_token, ExpiresIn: t.expires_in });
+  await persist();
+  return session;
+}
+
 export async function signOut() {
   const token = session?.refreshToken;
   session = null;

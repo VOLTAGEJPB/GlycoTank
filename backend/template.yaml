@@ -20,8 +20,33 @@ Parameters:
       Verified SES domain to send account emails from (e.g. glycotank.voltagejpb.com).
       Empty uses Cognito's built-in sender, which is limited to about 50 emails a day.
 
+  # Google sign-in: an OAuth client from Google Cloud Console (Web application).
+  GoogleClientId:
+    Type: String
+    Default: ""
+  GoogleClientSecret:
+    Type: String
+    Default: ""
+    NoEcho: true
+  # Sign in with Apple: from the Apple Developer account.
+  AppleServicesId:
+    Type: String
+    Default: ""
+  AppleTeamId:
+    Type: String
+    Default: ""
+  AppleKeyId:
+    Type: String
+    Default: ""
+  ApplePrivateKey:
+    Type: String
+    Default: ""
+    NoEcho: true
+
 Conditions:
   UseSes: !Not [!Equals [!Ref EmailDomain, ""]]
+  UseGoogle: !Not [!Equals [!Ref GoogleClientId, ""]]
+  UseApple: !Not [!Equals [!Ref AppleServicesId, ""]]
 
 Globals:
   Function:
@@ -70,10 +95,71 @@ Resources:
           <p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:0 0 16px">{####}</p>
           <p style="color:#5b6478;font-size:14px;margin:0">If you didn't ask for this code, you can ignore this email. Someone may have typed your address by mistake.</p>
           </div>
+      LambdaConfig:
+        PreSignUp: !GetAtt PreSignUpFunction.Arn
       Schema:
         - Name: email
           Required: true
           Mutable: true
+
+  # Links Google/Apple logins to the email account with the same address.
+  PreSignUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: presignup.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:ListUsers
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminConfirmSignUp
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:AdminLinkProviderForUser
+              # Wildcard: naming the pool here would make a circular reference.
+              Resource: !Sub arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/*
+
+  PreSignUpPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref PreSignUpFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  GoogleProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Condition: UseGoogle
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: Google
+      ProviderType: Google
+      ProviderDetails:
+        client_id: !Ref GoogleClientId
+        client_secret: !Ref GoogleClientSecret
+        authorize_scopes: openid email profile
+      AttributeMapping:
+        email: email
+        email_verified: email_verified
+
+  AppleProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Condition: UseApple
+    Properties:
+      UserPoolId: !Ref UserPool
+      ProviderName: SignInWithApple
+      ProviderType: SignInWithApple
+      ProviderDetails:
+        client_id: !Ref AppleServicesId
+        team_id: !Ref AppleTeamId
+        key_id: !Ref AppleKeyId
+        private_key: !Ref ApplePrivateKey
+        authorize_scopes: email
+      AttributeMapping:
+        email: email
+        email_verified: email_verified
 
   UserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
@@ -94,7 +180,11 @@ Resources:
       IdTokenValidity: 60
       RefreshTokenValidity: 365
       TokenValidityUnits: { AccessToken: minutes, IdToken: minutes, RefreshToken: days }
-      SupportedIdentityProviders: [COGNITO]
+      # !Ref on a provider returns its name and makes the client wait for it.
+      SupportedIdentityProviders:
+        - COGNITO
+        - !If [UseGoogle, !Ref GoogleProvider, !Ref AWS::NoValue]
+        - !If [UseApple, !Ref AppleProvider, !Ref AWS::NoValue]
       AllowedOAuthFlowsUserPoolClient: true
       AllowedOAuthFlows: [code]
       AllowedOAuthScopes: [openid, email, profile]
@@ -173,3 +263,9 @@ Outputs:
     Value: !Sub https://${AuthDomainPrefix}.auth.${AWS::Region}.amazoncognito.com
   Region:
     Value: !Ref AWS::Region
+  Providers:
+    Description: Social sign-in providers turned on, for the app config.
+    Value: !Join
+      - ","
+      - - !If [UseApple, SignInWithApple, !Ref AWS::NoValue]
+        - !If [UseGoogle, Google, !Ref AWS::NoValue]

@@ -375,7 +375,15 @@ body.onboarding { overflow: hidden; }
 .pw-toggle { flex: none; background: none; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-weight: 700; padding: 0 14px; cursor: pointer; }
 .code-input { font-size: 26px; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
 .form-error { background: #2a1517; border: 1px solid #4a2a2e; color: #ffb4b4; border-radius: 12px; padding: 10px 14px; margin: 6px 0 0; }
-.btn.social { width: 100%; margin-top: 10px; min-height: 52px; font-size: 17px; background: #e8ebf1; color: #0f1115; border-color: #e8ebf1; }
+.social-list { margin-top: 22px; }
+.btn.social { width: 100%; margin-top: 10px; min-height: 52px; font-size: 17px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.btn.social svg { width: 20px; height: 20px; flex: none; }
+/* Apple: white button with black logo on dark backgrounds. Google: light theme, standard "G". */
+.btn.social.apple { background: #fff; color: #000; border-color: #fff; }
+.btn.social.apple svg { margin-top: -3px; }
+.btn.social.google { background: #fff; color: #1f1f1f; border-color: #747775; font-family: Roboto, system-ui, sans-serif; }
+.or { display: flex; align-items: center; gap: 12px; margin: 22px 0 0; color: var(--muted); font-size: 14px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .sync-line { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
 .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
 .sync-dot.err { background: var(--warn); }
