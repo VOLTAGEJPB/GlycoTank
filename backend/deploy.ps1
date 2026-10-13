@@ -26,7 +26,13 @@ if ($LASTEXITCODE -ne 0) {
 $packaged = Join-Path $env:TEMP "glycotank-packaged.yaml"
 aws cloudformation package --template-file "$here\template.yaml" --s3-bucket $bucket --output-template-file $packaged --region $Region | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "package failed" }
-aws cloudformation deploy --template-file $packaged --stack-name $Stack --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $Region --no-fail-on-empty-changeset
+# Send account emails through SES once the domain is verified (DNS records in
+# Cloudflare); until then Cognito's built-in sender is used.
+$EmailDomain = "glycotank.voltagejpb.com"
+$verified = aws sesv2 get-email-identity --email-identity $EmailDomain --region $Region --query VerifiedForSendingStatus --output text 2>$null
+if ($verified -eq "True") { Write-Host "Sending account emails from $EmailDomain via SES" } else { Write-Host "$EmailDomain not verified in SES yet; using Cognito's built-in email"; $EmailDomain = "" }
+
+aws cloudformation deploy --template-file $packaged --stack-name $Stack --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND --region $Region --no-fail-on-empty-changeset --parameter-overrides "EmailDomain=$EmailDomain"
 if ($LASTEXITCODE -ne 0) { throw "deploy failed" }
 
 $out = @{}

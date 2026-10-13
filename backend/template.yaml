@@ -13,6 +13,15 @@ Parameters:
     Type: String
     Default: glycotank-auth
     Description: Prefix for the Cognito hosted sign-in domain (used by Google and Apple sign-in).
+  EmailDomain:
+    Type: String
+    Default: ""
+    Description: >
+      Verified SES domain to send account emails from (e.g. glycotank.voltagejpb.com).
+      Empty uses Cognito's built-in sender, which is limited to about 50 emails a day.
+
+Conditions:
+  UseSes: !Not [!Equals [!Ref EmailDomain, ""]]
 
 Globals:
   Function:
@@ -43,10 +52,24 @@ Resources:
           RequireUppercase: false
           RequireNumbers: true
           RequireSymbols: false
+      EmailConfiguration: !If
+        - UseSes
+        - EmailSendingAccount: DEVELOPER
+          SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${EmailDomain}
+          From: !Sub "GlycoTank <no-reply@${EmailDomain}>"
+          ReplyToEmailAddress: joel.perez5588@gmail.com
+        - EmailSendingAccount: COGNITO_DEFAULT
+      # Used for both the sign-up code and the password reset code.
       VerificationMessageTemplate:
         DefaultEmailOption: CONFIRM_WITH_CODE
-        EmailSubject: Your GlycoTank verification code
-        EmailMessage: "Your GlycoTank verification code is {####}"
+        EmailSubject: Your GlycoTank code
+        EmailMessage: >-
+          <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1b2030">
+          <p style="font-size:20px;font-weight:700;margin:0 0 16px">GlycoTank</p>
+          <p style="margin:0 0 16px">Here's your code. Enter it in the app to continue.</p>
+          <p style="font-size:32px;font-weight:700;letter-spacing:6px;margin:0 0 16px">{####}</p>
+          <p style="color:#5b6478;font-size:14px;margin:0">If you didn't ask for this code, you can ignore this email. Someone may have typed your address by mistake.</p>
+          </div>
       Schema:
         - Name: email
           Required: true
