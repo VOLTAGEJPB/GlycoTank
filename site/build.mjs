@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const CONTACT = "joel.perez5588@gmail.com";
-const UPDATED = "October 11, 2026";
+const UPDATED = "October 13, 2026";
 
 const css = `
 :root{--bg:#0f1115;--card:#161a23;--text:#e8ebf1;--muted:#98a2b3;--line:#262c3d;--accent:#57cc99}
@@ -82,7 +82,7 @@ page(
 <div class="card"><h3>Personal targets</h3><p>Calories, protein, carbs, fat and fiber set from your body, goal and training.</p></div>
 <div class="card"><h3>Scan to log</h3><p>Scan a barcode or snap the Nutrition Facts label and your meal fills itself in.</p></div>
 <div class="card"><h3>Fast logging</h3><p>Favorites, full workout sessions, quick macro entry, a rest timer and plate math.</p></div>
-<div class="card"><h3>Private by design</h3><p>No account, no ads, no tracking. Your data stays on your phone.</p></div>
+<div class="card"><h3>Private by design</h3><p>No ads, no tracking, never sold. Your data is backed up privately to your account so it follows you to a new phone.</p></div>
 </div>
 <h2>Coming soon</h2>
 <p>GlycoTank is coming to the App Store and Google Play. Questions? See <a href="/support/">support</a>.</p>`,
@@ -91,16 +91,23 @@ page(
 page(
   "privacy/index.html",
   "Privacy Policy | GlycoTank",
-  "GlycoTank's privacy policy. GlycoTank does not collect, store or share any personal data.",
+  "GlycoTank's privacy policy: what we store, why, and how to delete it.",
   `<h1>Privacy Policy</h1>
 <p class="meta">Last updated: ${UPDATED}</p>
-<p>GlycoTank is a fitness and nutrition tracking app for iPhone and Android made by Joel Perez ("we"). This policy explains how the app handles your information. In short: <strong>we don't collect any of it.</strong></p>
+<p>GlycoTank is a fitness and nutrition tracking app for iPhone and Android made by Joel Perez ("we"). This policy explains what information the app stores, why, and how you can delete it. In short: <strong>we store your data only to back it up and sync it between your devices. We never sell it, share it or use it for advertising.</strong></p>
 
-<h2>Information stored on your device</h2>
-<p>Everything you enter in GlycoTank (meals, workouts, morning check-ins including sleep and resting heart rate, your profile details such as weight, height, age and sex, and your settings) is stored only on your device, in the app's private storage. It is never sent to us or to anyone else. We have no servers that receive app data and no way to see what you log.</p>
+<h2>Your account</h2>
+<p>To use GlycoTank you create an account with your email address and a password. We use your email address to sign you in, to send you a verification code when you sign up and to help you reset your password. We don't send marketing email. Your password is handled by our sign-in provider and is never visible to us.</p>
 
-<h2>Information we collect</h2>
-<p>None. GlycoTank has no user accounts, no analytics, no advertising, no crash reporting and no third-party tracking tools. Everything except barcode lookups works fully offline.</p>
+<h2>Information we store</h2>
+<p>Everything you enter in GlycoTank is saved on your device and backed up to your account so it's available when you sign in on another phone. This includes meals, workouts, morning check-ins (sleep, resting heart rate, mood), your profile details (such as weight, height, age, sex and goal) and your settings.</p>
+<p>We use this information only to provide the app to you: to keep your devices in sync and to restore your data when you sign in. We don't use it for advertising, we don't sell it, and we don't share it with anyone, except the service providers that run the app for us as described below or where required by law.</p>
+
+<h2>Where it's stored and how it's protected</h2>
+<p>Your account and data are stored with Amazon Web Services (AWS) in the United States. Data is encrypted in transit (HTTPS) and at rest. Only you can access your data through the app, after signing in. We keep automatic backups for a limited time to protect against data loss.</p>
+
+<h2>What we don't collect</h2>
+<p>GlycoTank has no advertising, no analytics, no crash reporting and no third-party tracking tools. We don't collect your location, contacts or photos.</p>
 
 <h2>Scanning food</h2>
 <p><strong>Nutrition label scans</strong> are read entirely on your device. The photo is not uploaded anywhere.</p>
@@ -112,17 +119,18 @@ page(
 <h2>Reminders</h2>
 <p>If you turn on reminders, GlycoTank schedules notifications locally on your device. Nothing is sent to a server to deliver them. You can turn them off in the app or in your phone's settings at any time.</p>
 
-<h2>Deleting your data</h2>
-<p>You can delete all of your data at any time with <em>Settings → Your data → Delete all data</em>. Uninstalling the app also removes all of its data from your device.</p>
+<h2>Deleting your account and data</h2>
+<p>You can delete your account at any time in the app with <em>Settings → Account → Delete account</em>. This permanently deletes your account and all the data stored with it from our servers, and removes it from your device. Copies in our automatic backups are deleted within 35 days. You can also email us to ask for your account to be deleted.</p>
+<p><em>Settings → Your data → Delete all data</em> deletes your meals, workouts, check-ins and settings from your device and your account but keeps your account. Uninstalling the app removes the data from that device only.</p>
 
 <h2>Children</h2>
-<p>GlycoTank is not directed at children under 13 and we don't knowingly collect information from anyone, including children.</p>
+<p>GlycoTank is not directed at children under 13 and we don't knowingly collect information from children under 13. If you believe a child has created an account, contact us and we'll delete it.</p>
 
 <h2>Health information</h2>
 <p>GlycoTank provides general fitness and nutrition estimates. It is not a medical device and does not provide medical advice, diagnosis or treatment.</p>
 
 <h2>Changes to this policy</h2>
-<p>If this policy changes, we'll update the date at the top of this page. If the app ever begins collecting information, we'll update this policy and the app store listings before that happens.</p>
+<p>If this policy changes, we'll update the date at the top of this page. If we make significant changes to what we collect or how we use it, we'll tell you in the app before they take effect.</p>
 
 <h2>Contact</h2>
 <p>Questions about privacy? Email <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
@@ -139,16 +147,19 @@ page(
 <p>GlycoTank keeps a running estimate of the carbohydrate stored in your muscles and liver. Meals add about 85% of their carbs. Strength training uses a set amount per hard set and cardio uses an amount per minute based on intensity. Your body also uses some every day, more when the tank is full and less as it empties. You can adjust every value in <em>Settings → Targets &amp; tank</em>, or let <em>Personalize</em> set them for you.</p>
 
 <h2>Is my data backed up?</h2>
-<p>Your data is stored only on your phone, so it isn't backed up automatically. Go to <em>Settings → Your data → Back up (JSON)</em> and save the file somewhere safe, such as Files, email or a cloud drive.</p>
+<p>Yes. Everything you log is backed up to your GlycoTank account automatically whenever you're online. You can see when it last synced in <em>Settings → Account</em>. You can also save your own copy any time with <em>Settings → Your data → Back up (JSON)</em>.</p>
 
 <h2>How do I move my data to a new phone?</h2>
-<p>On your old phone, make a backup as described above. Install GlycoTank on the new phone, then use <em>Settings → Your data → Restore backup</em> and choose the backup file.</p>
+<p>Install GlycoTank on the new phone and sign in with the same email and password. Your data downloads automatically.</p>
+
+<h2>I forgot my password</h2>
+<p>On the sign-in screen, tap <em>I have an account</em>, then <em>Forgot password?</em>. We'll email you a code to set a new one.</p>
 
 <h2>Reminders aren't showing up</h2>
 <p>Make sure reminder times are set in <em>Settings → Reminders</em> and that notifications are allowed for GlycoTank in your phone's settings. Some Android phones also stop notifications for apps with battery optimization turned on.</p>
 
-<h2>How do I delete my data?</h2>
-<p>Use <em>Settings → Your data → Delete all data</em>, or uninstall the app. See our <a href="/privacy/">privacy policy</a> for details.</p>
+<h2>How do I delete my account?</h2>
+<p>Use <em>Settings → Account → Delete account</em>. This permanently deletes your account and all your data. See our <a href="/privacy/">privacy policy</a> for details.</p>
 
 <div class="note">GlycoTank gives general fitness and nutrition estimates, not medical advice. Talk to a doctor or dietitian before making big changes to your diet or training, especially if you have diabetes or another health condition.</div>`,
 );

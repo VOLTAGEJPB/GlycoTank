@@ -11,20 +11,21 @@ Character limits are noted in brackets; every field below fits.
 - **Marketing URL:** https://glycotank.voltagejpb.com
 - **Privacy policy URL:** https://glycotank.voltagejpb.com/privacy/
 - **Contact email:** joel.perez5588@gmail.com
-- **Content rating:** Everyone / 4+ (no user-generated content, no ads, no web browsing)
+- **Content rating:** Everyone / 4+ (no user-generated content shared with others, no ads, no web browsing)
+- **App review sign-in:** Apple and Google need a demo account. Create one in the app before submitting (any email you can receive a code at) and enter its email and password in App Store Connect → App Review Information and Play Console → App access.
 
 ## Apple App Store
 
 - **Subtitle** (30): `Fuel, macros & readiness` (24)
 - **Promotional text** (170, can be changed anytime without review):
-  `Know when you're fueled to train. GlycoTank estimates your glycogen "fuel tank" from your meals and workouts, and plans tomorrow's carbs for you. Private: no account.` (166)
+  `Know when you're fueled to train. GlycoTank estimates your glycogen "fuel tank" from your meals and workouts, and plans tomorrow's carbs. No ads, never sold.` (159)
 - **Keywords** (100, comma-separated, no spaces needed):
   `glycogen,carb cycling,macro tracker,meal log,workout log,protein,readiness,nutrition,fitness,diet` (97)
 
 ## Google Play
 
 - **Short description** (80):
-  `Track meals & workouts and see your glycogen fuel tank. Private, no account.` (76)
+  `Track meals & workouts and see your glycogen fuel tank. Private, no ads.` (72)
 
 ## Full description (both stores, 4000)
 
@@ -62,10 +63,11 @@ FAST LOGGING
 • Log a whole training session at once
 • Rest timer and plate math built in
 
-PRIVATE BY DESIGN
-• No account, no ads, no tracking
-• Your data stays on your phone and never touches our servers (barcode lookups send only the barcode number to the open food database)
-• Back up or export to a spreadsheet anytime
+PRIVATE AND BACKED UP
+• No ads, no tracking, and your data is never sold
+• Your log is backed up privately to your account and follows you to a new phone
+• Works offline and syncs when you're back online
+• Export to a spreadsheet anytime, or delete your account and data in the app
 
 GlycoTank provides general fitness and nutrition estimates. It is not a medical device and does not provide medical advice. Talk to a doctor or dietitian before making big changes to your diet or training, especially if you have diabetes or another health condition.
 
@@ -84,13 +86,28 @@ First release of GlycoTank.
 
 ## Questionnaires (answers)
 
-**Google Play Data safety:** the app collects no data and shares no data. The only network request is an optional barcode lookup sending a product barcode number (not user data) over HTTPS to Open Food Facts. Users can delete everything in the app ("Delete all data") or by uninstalling.
+**Google Play Data safety:**
+- Does the app collect or share user data? **Yes, collects. Does not share.**
+- Encrypted in transit: **Yes.** Users can request deletion: **Yes** (in app: Settings → Account → Delete account; web: email via the privacy policy).
+- Data types collected (all **required**, **not shared**, **not processed ephemerally**, purpose **App functionality** and **Account management** only):
+  - Personal info → **Email address** (account management, app functionality)
+  - Health and fitness → **Health info** (resting heart rate, sleep, weight, height, age) and **Fitness info** (workouts, meals/nutrition) (app functionality)
+  - Personal info → **Other info** (sex, goal)
+- Not collected: location, contacts, photos (label photos are read on-device), app activity, device IDs, financial info.
+- Barcode lookups send only a product barcode number to Open Food Facts; that is not user data.
+- Account deletion URL (required by Play): https://glycotank.voltagejpb.com/privacy/ (section "Deleting your account and data").
 
 **Camera:** used only when the user taps Scan barcode or Scan label. Label photos are processed on-device and not stored or uploaded.
 
-**Apple App Privacy ("nutrition label"):** Data Not Collected.
+**Apple App Privacy ("nutrition label"):** Data **is** collected. For each type below: **Linked to the user: Yes. Used for tracking: No. Purpose: App Functionality** only.
+- Contact Info → Email Address
+- Health & Fitness → Health (resting heart rate, sleep, weight) and Fitness (workouts, meals)
+- Identifiers → User ID (account ID)
+Not collected: location, contacts, photos, usage data, diagnostics, purchases.
 
-**Google Play health apps declaration:** a fitness/nutrition tracker; not a medical device; no health data leaves the device.
+**Apple account rules:** account deletion is in the app (guideline 5.1.1(v)) ✔. Sign in with Apple must be offered if Google sign-in is offered (guideline 4.8). Requiring an account for an app that could work on one device is a rejection risk under 5.1.1(v); if review objects, switch `ACCOUNT_REQUIRED` in src/main.js to false.
+
+**Google Play health apps declaration:** a fitness/nutrition tracker; not a medical device. Health and fitness data is stored in the user's account only to back it up and sync it between their devices; it is never sold, shared or used for advertising.
 
 **Ads:** none. **Target audience:** 18+ (fitness and nutrition app for adults; not designed for children).
 

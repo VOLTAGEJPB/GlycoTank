@@ -11,7 +11,8 @@
 
 export const COLLECTIONS = { meals: "meal", workouts: "workout", checks: "check" };
 export const DOCS = ["settings", "profile", "meta", "mealFavs", "workoutFavs"];
-const KIND_TO_KEY = Object.fromEntries(Object.entries(COLLECTIONS).map(([k, v]) => [v, k]));
+const BASELINE = 1; // stamp for docs never edited on this device
+const KIND_TO_KEY =Object.fromEntries(Object.entries(COLLECTIONS).map(([k, v]) => [v, k]));
 
 const body = (item) => {
   const { updatedAt, ...rest } = item;
@@ -42,7 +43,10 @@ export function stampChanges(state, prev, now = Date.now()) {
   }
   for (const doc of DOCS) {
     const k = `doc:${doc}`;
-    if (!state.docStamps[doc] || (prev && prev[k] !== next[k])) state.docStamps[doc] = now;
+    // A doc nobody has edited yet (e.g. default settings on a fresh install)
+    // gets the oldest possible stamp, so any copy already in the cloud wins.
+    if (prev && prev[k] !== next[k]) state.docStamps[doc] = now;
+    else if (!state.docStamps[doc]) state.docStamps[doc] = BASELINE;
   }
   if (prev) for (const k of Object.keys(prev)) if (!(k in next) && !k.startsWith("doc:")) state.deleted[k] = now;
   return next;

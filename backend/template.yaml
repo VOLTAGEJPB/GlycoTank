@@ -101,7 +101,9 @@ Resources:
     Properties:
       StageName: !Ref Stage
       CorsConfiguration:
-        AllowOrigins: ["capacitor://localhost", "https://localhost", "http://localhost", "http://localhost:5173", "http://localhost:4173"]
+        # API Gateway rejects custom-scheme origins (capacitor://). Auth is a bearer
+        # token, not a cookie, so allowing any origin exposes nothing.
+        AllowOrigins: ["*"]
         AllowHeaders: [authorization, content-type]
         AllowMethods: [GET, POST, DELETE, OPTIONS]
         MaxAge: 600

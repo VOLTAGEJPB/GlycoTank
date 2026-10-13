@@ -9,7 +9,7 @@ test("first stamp marks everything once", () => {
   s.meals.push({ id: "a", name: "Oats" });
   const snap = stampChanges(s, null, 100);
   assert.equal(s.meals[0].updatedAt, 100);
-  assert.equal(s.docStamps.settings, 100);
+  assert.equal(s.docStamps.settings, 1, "untouched docs get the oldest stamp");
   stampChanges(s, snap, 200);
   assert.equal(s.meals[0].updatedAt, 100, "unchanged records keep their stamp");
 });
@@ -27,7 +27,7 @@ test("edits, additions and deletions are detected on save", () => {
   assert.equal(s.workouts[0].updatedAt, 200);
   assert.equal(s.deleted["meal:b"], 200);
   assert.equal(s.docStamps.settings, 200);
-  assert.equal(s.docStamps.profile, 100);
+  assert.equal(s.docStamps.profile, 1);
   const recs = toRecords(s, 150).map((r) => `${r.kind}:${r.id}${r.deleted ? " (deleted)" : ""}`).sort();
   assert.deepEqual(recs, ["doc:settings", "meal:a", "meal:b (deleted)", "workout:w"]);
 });
@@ -82,4 +82,20 @@ test("two devices converge", () => {
   applyRecords(tablet, toRecords(phone, 0));
   assert.deepEqual(phone.meals.map((m) => m.name), ["Renamed on tablet"]);
   assert.deepEqual(tablet.meals.map((m) => m.name), ["Renamed on tablet"]);
+});
+
+test("a fresh install's default settings never overwrite the cloud copy", () => {
+  const phone = base();
+  let pSnap = stampChanges(phone, null, 100);
+  phone.profile = { weight: 80 };
+  pSnap = stampChanges(phone, pSnap, 200);
+  const cloud = toRecords(phone, 0);
+  const newPhone = base(); // installed later, still on defaults
+  stampChanges(newPhone, null, 500);
+  applyRecords(newPhone, cloud);
+  assert.deepEqual(newPhone.profile, { weight: 80 });
+  // ...and its defaults don't win when it uploads them either.
+  applyRecords(phone, toRecords(newPhone, 0));
+  assert.deepEqual(phone.profile, { weight: 80 });
+  assert.equal(phone.settings.units, "lb");
 });

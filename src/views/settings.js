@@ -48,7 +48,7 @@ export function renderSettings(root, app) {
 
     <section class="card" id="personalize">
       <h2>Personalize your targets</h2>
-      <p class="hint">Answer a few questions and we'll estimate your calories, macros and tank settings. Everything stays on this device.</p>
+      <p class="hint">Answer a few questions and we'll estimate your calories, macros and tank settings. ${auth.configured() ? "Your answers are saved privately to your account." : "Everything stays on this device."}</p>
       <div class="row3">
         ${field("pWeight", `Body weight (${p.weightUnits})`, 'type="number" inputmode="decimal" min="30"', p.weight ?? "")}
         ${field("pAge", "Age", 'type="number" inputmode="numeric" min="14" max="100"', p.age ?? "")}
@@ -112,7 +112,7 @@ export function renderSettings(root, app) {
 
     <section class="card">
       <h2>Your data</h2>
-      <p class="hint">GlycoTank has no accounts or servers. Your data lives only on this device, so export a backup now and then. Label scans are read on your phone; barcode lookups send only the barcode number to Open Food Facts.</p>
+      <p class="hint">${auth.configured() ? "Your data is saved on this device and backed up privately to your GlycoTank account. It's encrypted, never sold and never used for ads." : "Your data lives only on this device, so export a backup now and then."} Label scans are read on your phone; barcode lookups send only the barcode number to Open Food Facts.</p>
       <div class="actions">
         <button class="btn" id="dJson">Back up (JSON)</button>
         <button class="btn" id="dCsv">Export spreadsheet (CSV)</button>

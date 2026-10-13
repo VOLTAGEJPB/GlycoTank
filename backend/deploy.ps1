@@ -5,7 +5,9 @@
 #
 # Requires an active AWS CLI session (aws login --region us-east-1).
 
-$ErrorActionPreference = "Stop"
+# Native-command stderr must not abort the script (Windows PowerShell 5.1);
+# each aws call is checked with $LASTEXITCODE instead.
+$ErrorActionPreference = "Continue"
 $Region = "us-east-1"
 $Stack = "glycotank-prod"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -14,9 +16,10 @@ if ($LASTEXITCODE -ne 0) { throw "AWS session not active. Run: aws login --regio
 
 # Bucket that holds the packaged Lambda code.
 $bucket = "glycotank-deploy-$account"
-aws s3api head-bucket --bucket $bucket --region $Region 2>$null
+aws s3api head-bucket --bucket $bucket --region $Region 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) {
   aws s3api create-bucket --bucket $bucket --region $Region | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw "could not create bucket $bucket" }
   aws s3api put-public-access-block --bucket $bucket --region $Region --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
 }
 
@@ -41,5 +44,6 @@ export const CLOUD = {
   providers: [],
 };
 "@
-Set-Content -Path (Join-Path $here "..\src\cloud-config.js") -Value $config -Encoding utf8
+# UTF-8 without a byte-order mark (Set-Content -Encoding utf8 adds one in PowerShell 5.1).
+[System.IO.File]::WriteAllText((Join-Path $here "..\src\cloud-config.js"), $config + "`n", (New-Object System.Text.UTF8Encoding $false))
 Write-Host "Deployed. API: $($out.ApiUrl)"
