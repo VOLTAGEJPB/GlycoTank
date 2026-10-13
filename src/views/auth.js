@@ -105,7 +105,9 @@ export function openAuth() {
       $$("[data-provider]", root).forEach((b) => b.addEventListener("click", () => toast("Coming soon")));
       // On the start screen, the ghost button means "go to sign in".
       if (screen === "start") $('[data-act="signin"]', root).dataset.act = "toSignin";
-      $("input", root)?.focus({ preventScroll: true });
+      // Only on mouse devices: on Android, focusing a field from code leaves it
+      // focused without a keyboard, and tapping it then doesn't open one.
+      if (matchMedia("(pointer: fine)").matches) $("input", root)?.focus({ preventScroll: true });
     }
 
     const go = (next, dir) => {

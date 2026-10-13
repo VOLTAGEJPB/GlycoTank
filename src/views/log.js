@@ -171,7 +171,9 @@ function renderMeal(root, app) {
       report(err);
       if (err instanceof ScanError && err.unavailable) {
         $("#barcodeEntry").hidden = false;
-        $("#barcodeInput").focus();
+        // Not focused from code here: it runs after an await, outside the tap, so
+        // Android would focus the field without opening the keyboard.
+        $("#barcodeInput").scrollIntoView({ block: "center", behavior: "smooth" });
       }
     }
   });
