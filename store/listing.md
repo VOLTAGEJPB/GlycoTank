@@ -77,9 +77,9 @@ First release of GlycoTank.
 
 ## Screenshot captions (in order)
 
-1. Know your fuel tank: Today screen with the tank gauge and trend
-2. Plan tomorrow's carbs: the carb planner
-3. Log meals in seconds: meal logging with quick entry
+1. Log meals in seconds: Today opens on quick add, scan, and one-tap repeat meals
+2. Know your fuel tank: the tank gauge and trend
+3. Plan tomorrow's carbs: the carb planner
 4. Every set, every session: workout logging, rest timer, plate math
 5. Train, go easy or rest: morning check-in and readiness
 6. Targets made for you: personalized calories and macros

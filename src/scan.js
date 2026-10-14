@@ -7,7 +7,12 @@ import { TextRecognition } from "@capacitor-mlkit/text-recognition";
 import { Camera } from "@capacitor/camera";
 import { fromOpenFoodFacts, parseNutritionLabel } from "./model.js";
 
-export const native = Capacitor.isNativePlatform();
+// Demo screenshots can add &native to show the phone's scan buttons on the web.
+const demoNative = (() => {
+  const q = new URLSearchParams(globalThis.location?.search);
+  return q.has("demo") && q.has("native");
+})();
+export const native = Capacitor.isNativePlatform() || demoNative;
 
 export class ScanError extends Error {
   constructor(message, { unavailable = false } = {}) {
