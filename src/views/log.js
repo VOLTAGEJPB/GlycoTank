@@ -51,7 +51,8 @@ export function renderLog(root, app) {
 function renderMeal(root, app) {
   const { state } = app;
   const m = app.editing ? state.meals.find((x) => x.id === app.editing.id) : null;
-  const v = m || { date: localDate() };
+  const v = m || { date: localDate(), ...app.prefill };
+  app.prefill = null;
   root.innerHTML = `
     <section class="card">
       <h2>${m ? "Edit meal" : "Log a meal"}</h2>
@@ -203,6 +204,11 @@ function renderMeal(root, app) {
     $("#barcodeInput").focus();
   });
   $("#barcodeGo")?.addEventListener("click", (e) => lookup($("#barcodeInput").value, e.currentTarget));
+  // Scan buttons on Today land here and start the scan straight away.
+  if (app.autoScan) {
+    $(app.autoScan === "label" ? "#scanLabel" : "#scanBarcode")?.click();
+    app.autoScan = null;
+  }
   $("#barcodeInput")?.addEventListener("keydown", (e) => e.key === "Enter" && lookup(e.target.value, $("#barcodeGo")));
 
   $("#mFav")?.addEventListener("change", (e) => {

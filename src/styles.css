@@ -113,6 +113,21 @@ canvas { width: 100%; height: 150px; display: block; margin-top: 8px; border-rad
 .bar { height: 10px; border-radius: 99px; background: var(--field); overflow: hidden; margin-top: 4px; }
 .bar > div { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
 
+/* Meal-first card on Today */
+.meal-first { border-color: #2c4a3c; }
+.quick-add { display: flex; gap: 8px; margin-bottom: 10px; }
+.quick-add input { flex: 1; }
+.quick-add .btn { flex: none; }
+.chips { display: flex; gap: 8px; margin: 6px -16px 0; padding: 0 16px 2px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  display: inline-flex; align-items: baseline; gap: 6px; min-height: 40px; padding: 8px 12px;
+  background: var(--field); border: 1px solid var(--line); border-radius: 99px; color: var(--text);
+  font-weight: 600; font-size: 14px; cursor: pointer; flex: none; white-space: nowrap;
+}
+.chip small { color: var(--muted); font-weight: 600; font-size: 12px; white-space: nowrap; }
+.chip:active { transform: scale(0.96); }
+
 .plan-out { display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px; padding: 12px 14px; background: var(--field); border-radius: 12px; }
 
 /* Forms */

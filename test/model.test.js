@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_SETTINGS, localDate, addDays, workoutCost, glycoSeries, glycoStatus, carbPlan, plannedCost,
-  readiness, baselineRhr, streak, personalize, plateMath, dayTotals, parseMealText, parseNutritionLabel, fromOpenFoodFacts,
+  readiness, baselineRhr, streak, personalize, plateMath, dayTotals, parseMealText, mealNameFromText, parseNutritionLabel, fromOpenFoodFacts,
 } from "../src/model.js";
 
 // Most tests turn everyday use off to check one effect at a time.
@@ -172,6 +172,14 @@ test("meal quick entry parsing", () => {
   assert.deepEqual(parseMealText("calories 500 carbs 60 protein 32.5 fat 12"), { kcal: 500, carbs: 60, protein: 32.5, fat: 12, fiber: null });
   assert.deepEqual(parseMealText("40g protein, 30g carbs"), { kcal: null, carbs: 30, protein: 40, fat: null, fiber: null });
   assert.deepEqual(parseMealText("chicken bowl"), { kcal: null, carbs: null, protein: null, fat: null, fiber: null });
+});
+
+test("quick-add text gives the meal's name", () => {
+  assert.equal(mealNameFromText("chicken bowl 650 cal 70c 45p"), "Chicken bowl");
+  assert.equal(mealNameFromText("Oats calories 300 carbs 54"), "Oats");
+  assert.equal(mealNameFromText("650 cal 70c"), "");
+  assert.equal(mealNameFromText("Greek yogurt"), "Greek yogurt");
+  assert.equal(mealNameFromText("Burrito: 800 cal"), "Burrito");
 });
 
 test("plate math", () => {

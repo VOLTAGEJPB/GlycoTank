@@ -253,6 +253,16 @@ export function parseMealText(text) {
   return out;
 }
 
+// The meal's name from quick-add text: the words before the first number,
+// minus a trailing label ("Chicken bowl 650 cal" and "Oats calories 300" both
+// give their food). Empty when the text starts with numbers.
+export function mealNameFromText(text) {
+  const words = text.split(/\d/)[0].trim().split(/[\s,]+/).filter(Boolean);
+  while (words.length && Object.values(MEAL_LABELS).flat().includes(words.at(-1).toLowerCase())) words.pop();
+  const name = words.join(" ").replace(/[:\-–]+$/, "").trim();
+  return name && name[0].toUpperCase() + name.slice(1);
+}
+
 // ---- Scanning ----
 
 // Pulls calories and macros out of text read from a Nutrition Facts panel by
