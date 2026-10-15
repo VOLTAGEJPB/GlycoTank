@@ -1,4 +1,4 @@
-import { personalize, DEFAULT_SETTINGS, localDate } from "../model.js";
+import { personalize, DEFAULT_SETTINGS, localDate, mealSlot } from "../model.js";
 import { normalize, emptyState } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 import { shareFile, toCsv, applyReminders, remindersSupported } from "../native.js";
@@ -27,7 +27,12 @@ const TUNABLE = [
   ["dailyUse", "Everyday use, full tank (g/day)", 5],
 ];
 
-export function renderSettings(root, app) {
+// More shows one group of these cards at a time (profile, goals, reminders,
+// data, about); the group is remembered so re-renders keep showing it.
+let group = null;
+
+export function renderSettings(root, app, show = group) {
+  group = show;
   const { state } = app;
   const s = state.settings;
   const p = { weightUnits: s.units, heightUnits: s.units === "kg" ? "cm" : "ftin", goal: "maintain", sex: "m", daysPerWeek: 3, setsPerSession: 12, cardioMinsPerWeek: 60, cardioIntensity: 3, ...state.profile };
@@ -35,7 +40,7 @@ export function renderSettings(root, app) {
   const session = auth.current();
   root.innerHTML = `
     ${session ? `
-    <section class="card" id="account">
+    <section class="card" id="account" data-group="profile">
       <h2>Account</h2>
       <p class="hint">Signed in as <strong>${esc(session.email)}</strong>. Your data is backed up and syncs to any device you sign in on.</p>
       <div class="sync-line"><span class="sync-dot ${syncStatus.error ? "err" : ""}"></span><span id="syncText">${esc(syncText())}</span></div>
@@ -46,7 +51,7 @@ export function renderSettings(root, app) {
       </div>
     </section>` : ""}
 
-    <section class="card" id="personalize">
+    <section class="card" id="personalize" data-group="goals">
       <h2>Personalize your targets</h2>
       <p class="hint">Answer a few questions and we'll estimate your calories, macros and tank settings. ${auth.configured() ? "Your answers are saved privately to your account." : "Everything stays on this device."}</p>
       <div class="row3">
@@ -74,7 +79,7 @@ export function renderSettings(root, app) {
       <div class="actions"><button class="btn primary" id="pApply">Use these targets</button></div>
     </section>
 
-    <section class="card">
+    <section class="card" data-group="goals">
       <h2>Targets &amp; tank</h2>
       <p class="hint">Fine-tune any value. Changes save automatically.</p>
       <div class="row2">${TUNABLE.map(([k, label, step]) => field("t_" + k, label, `type="number" inputmode="decimal" min="0" step="${step}"`, s[k])).join("")}</div>
@@ -93,12 +98,12 @@ export function renderSettings(root, app) {
       </details>
     </section>
 
-    <section class="card">
+    <section class="card" data-group="profile">
       <h2>Units</h2>
       ${select("sUnits", "Weights", [["lb", "Pounds (lb)"], ["kg", "Kilograms (kg)"]], s.units)}
     </section>
 
-    <section class="card">
+    <section class="card" data-group="reminders">
       <h2>Reminders</h2>
       ${remindersSupported ? `
         <p class="hint">Daily notifications at the times you choose. Leave a time blank to turn it off. On Android, allow notifications and then turn on <em>Alarms &amp; reminders</em> for GlycoTank so they arrive on time.</p>
@@ -110,7 +115,7 @@ export function renderSettings(root, app) {
       : `<p class="hint">Reminders are available in the iPhone and Android apps.</p>`}
     </section>
 
-    <section class="card">
+    <section class="card" data-group="data">
       <h2>Your data</h2>
       <p class="hint">${auth.configured() ? "Your data is saved on this device and backed up privately to your GlycoTank account. It's encrypted, never sold and never used for ads." : "Your data lives only on this device, so export a backup now and then."} Label scans are read on your phone; barcode lookups send only the barcode number to Open Food Facts.</p>
       <div class="actions">
@@ -121,13 +126,14 @@ export function renderSettings(root, app) {
       </div>
     </section>
 
-    <section class="card">
+    <section class="card" data-group="about">
       <h2>About</h2>
       <p class="hint">GlycoTank ${esc(app.version)} · Made by Joel Perez.</p>
       <p class="hint">GlycoTank provides general fitness and nutrition estimates. It is not a medical device and does not give medical advice. Talk to a doctor or dietitian before making big changes to your diet or training, especially if you have diabetes or another health condition.</p>
       <p class="hint">Barcode product data from <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, available under the Open Database License.</p>
       <div class="actions"><button class="btn ghost" id="aIntro">Replay the intro</button></div>
     </section>`;
+  if (group) root.querySelectorAll("[data-group]").forEach((c) => (c.hidden = c.dataset.group !== group));
 
   // ----- Personalize -----
   const readProfile = () => ({
@@ -210,7 +216,7 @@ export function renderSettings(root, app) {
   $("#dJson").addEventListener("click", () => shareFile(`glycotank-backup-${stamp}.json`, JSON.stringify(state, null, 2), "application/json").catch(shareError));
   $("#dCsv").addEventListener("click", async () => {
     try {
-      await shareFile(`glycotank-meals-${stamp}.csv`, toCsv(state.meals, ["date", "name", "kcal", "carbs", "protein", "fat", "fiber", "notes"]), "text/csv");
+      await shareFile(`glycotank-meals-${stamp}.csv`, toCsv(state.meals.map((m) => ({ ...m, slot: mealSlot(m) })), ["date", "slot", "name", "kcal", "carbs", "protein", "fat", "fiber", "notes"]), "text/csv");
       await shareFile(`glycotank-workouts-${stamp}.csv`, toCsv(state.workouts, ["date", "type", "name", "sessionName", "sets", "reps", "weight", "mins", "intensity", "notes"]), "text/csv");
     } catch (e) {
       shareError(e);

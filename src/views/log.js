@@ -1,4 +1,4 @@
-import { localDate, plateMath, parseMealText } from "../model.js";
+import { localDate, plateMath, parseMealText, mealSlot, slotForHour, MEAL_SLOTS } from "../model.js";
 import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
 import { uid } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
@@ -53,9 +53,12 @@ function renderMeal(root, app) {
   const m = app.editing ? state.meals.find((x) => x.id === app.editing.id) : null;
   const v = m || { date: localDate(), ...app.prefill };
   app.prefill = null;
+  const slot = m ? mealSlot(m) : v.slot || slotForHour(new Date().getHours());
+  const quick = m ? [] : quickMeals(state);
   root.innerHTML = `
     <section class="card">
-      <h2>${m ? "Edit meal" : "Log a meal"}</h2>
+      <h2>${m ? "Edit food" : "Add food"}</h2>
+      ${select("mSlot", "Meal", MEAL_SLOTS, slot)}
       ${m ? "" : `
       <div class="scan-row">
         <button class="btn scan-btn" id="scanBarcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v14H3V5zm3 0h1v14H6V5zm2 0h2v14H8V5zm3 0h1v14h-1V5zm3 0h2v14h-2V5zm3 0h1v14h-1V5zm2 0h2v14h-2V5z"/></svg>${native ? "Scan barcode" : "Look up barcode"}</button>
@@ -67,10 +70,11 @@ function renderMeal(root, app) {
       </div>
       ${native ? `<p class="hint scan-alt"><a href="#" id="typeBarcode">Type a barcode</a> · <a href="#" id="pickLabel">Use a photo of a label</a></p>` : ""}
       <div id="scanResult" class="scan-result" hidden></div>`}
-      ${state.mealFavs.length ? select("mFav", "From favorites", [["", "Choose a favorite…"], ...state.mealFavs.map((f, i) => [i, f.name])], "") : ""}
+      ${quick.length ? `<div class="label mt">Favorites &amp; recent</div>
+      <div class="chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${q.fav ? "★ " : ""}${esc(q.name)}<small>${Math.round(q.kcal || 0)} kcal</small></button>`).join("")}</div>` : ""}
       <div class="row2">
         ${field("mDate", "Date", 'type="date"', v.date)}
-        ${field("mName", "Meal", 'placeholder="e.g. Chicken rice bowl" autocomplete="off"', v.name)}
+        ${field("mName", "Food", 'placeholder="e.g. Chicken rice bowl" autocomplete="off"', v.name)}
       </div>
       <label class="field"><span>Quick entry</span><input id="mQuick" placeholder="e.g. 650 cal 70c 45p 18f 8 fiber" autocomplete="off"></label>
       <div class="row5">
@@ -83,7 +87,7 @@ function renderMeal(root, app) {
       <p class="hint" id="mEstimate"></p>
       ${field("mNotes", "Notes", 'placeholder="Optional"', v.notes)}
       <div class="actions">
-        <button class="btn primary" id="mSave">${m ? "Update meal" : "Save meal"}</button>
+        <button class="btn primary" id="mSave">${m ? "Update" : "Save"}</button>
         <button class="btn ghost" id="mFavSave">Save as favorite</button>
         ${m ? `<button class="btn danger" id="mDelete">Delete</button>` : ""}
       </div>
@@ -211,13 +215,16 @@ function renderMeal(root, app) {
   }
   $("#barcodeInput")?.addEventListener("keydown", (e) => e.key === "Enter" && lookup(e.target.value, $("#barcodeGo")));
 
-  $("#mFav")?.addEventListener("change", (e) => {
-    const f = state.mealFavs[e.target.value];
-    if (!f) return;
-    $("#mName").value = f.name;
-    for (const [k, id] of Object.entries(ids)) $("#" + id).value = f[k] ?? "";
-    estimate();
-  });
+  // Tapping a favorite or recent food fills the form; Save logs it.
+  $$("[data-quick]", root).forEach((b) =>
+    b.addEventListener("click", () => {
+      const f = quick[b.dataset.quick];
+      $("#mName").value = f.name;
+      for (const [k, id] of Object.entries(ids)) $("#" + id).value = f[k] ?? "";
+      $$("[data-quick]", root).forEach((c) => c.classList.toggle("picked", c === b));
+      estimate();
+    }),
+  );
 
   const read = () => {
     const vals = Object.fromEntries(Object.entries(ids).map(([k, id]) => [k, num($("#" + id))]));
@@ -226,12 +233,12 @@ function renderMeal(root, app) {
   };
 
   $("#mSave").addEventListener("click", () => {
-    const data = { ...read(), date: $("#mDate").value || localDate() };
+    const data = { ...read(), slot: $("#mSlot").value, date: $("#mDate").value || localDate() };
     if (m) Object.assign(m, data);
     else state.meals.push({ id: uid(), ...data });
     app.editing = null;
     app.save();
-    success(m ? "Meal updated" : "Meal saved");
+    success(m ? "Updated" : `Added to ${MEAL_SLOTS.find(([k]) => k === data.slot)[1]}`);
     app.go("meals");
   });
   $("#mFavSave").addEventListener("click", () => {
@@ -264,7 +271,7 @@ function renderWorkout(root, app) {
   root.innerHTML = `
     <section class="card">
       <h2>${w ? "Edit workout" : "Log training"}</h2>
-      ${!w && state.workoutFavs.length ? select("wFav", "From favorites", [["", "Choose a favorite…"], ...state.workoutFavs.map((f, i) => [i, f.name])], "") : ""}
+      ${!w && state.workoutFavs.length ? select("wFav", "Routines & favorites", [["", "Choose one…"], ...state.workoutFavs.map((f, i) => [i, f.type === "routine" ? `${f.name} (routine, ${f.exercises.length} exercises)` : f.name])], "") : ""}
       <div class="row2">
         ${field("wDate", "Date", 'type="date"', v.date)}
         ${select("wType", "Type", [["strength", "Strength"], ["cardio", "Cardio"], ["sport", "Sport"], ["other", "Other"]], v.type)}
@@ -329,7 +336,7 @@ function renderWorkout(root, app) {
     $("#sessionBox").hidden = !session;
     $("#cardioBox").hidden = type !== "cardio";
     $("#otherBox").hidden = type !== "sport" && type !== "other";
-    $("#wFavSave") && ($("#wFavSave").hidden = session);
+    if ($("#wFavSave")) $("#wFavSave").textContent = session ? "Save as routine" : "Save as favorite";
     if (session && !$("#sessRows").children.length) addRow();
   };
   const addRow = (pref = {}) => {
@@ -337,9 +344,9 @@ function renderWorkout(root, app) {
     row.className = "sess-row";
     row.innerHTML = `
       <input class="sName" list="exerciseList" placeholder="Exercise" value="${esc(pref.name || "")}" aria-label="Exercise">
-      <input class="sSets" type="number" inputmode="numeric" min="1" placeholder="Sets" aria-label="Sets">
-      <input class="sReps" type="number" inputmode="numeric" min="1" placeholder="Reps" aria-label="Reps">
-      <input class="sWeight" type="number" inputmode="decimal" min="0" step="0.5" placeholder="${units}" aria-label="Weight">
+      <input class="sSets" type="number" inputmode="numeric" min="1" placeholder="Sets" value="${esc(pref.sets ?? "")}" aria-label="Sets">
+      <input class="sReps" type="number" inputmode="numeric" min="1" placeholder="Reps" value="${esc(pref.reps ?? "")}" aria-label="Reps">
+      <input class="sWeight" type="number" inputmode="decimal" min="0" step="0.5" placeholder="${units}" value="${esc(pref.weight || "")}" aria-label="Weight">
       <button class="icon-btn" aria-label="Remove exercise">✕</button>`;
     row.querySelector("button").addEventListener("click", () => row.remove());
     $("#sessRows").appendChild(row);
@@ -349,9 +356,36 @@ function renderWorkout(root, app) {
   $("#addRow").addEventListener("click", () => addRow());
   showBoxes();
 
+  // A routine fills a full session; any other favorite fills one exercise.
+  const loadRoutine = (r) => {
+    $("#wType").value = "strength";
+    $("#wMode").value = "session";
+    $("#sessRows").innerHTML = "";
+    $("#wSessionName").value = r.name;
+    for (const ex of r.exercises) addRow(ex);
+    showBoxes();
+  };
+  if (app.startRoutine != null && !w) {
+    const r = state.workoutFavs[app.startRoutine];
+    if (r?.type === "routine") {
+      loadRoutine(r);
+      if ($("#wFav")) $("#wFav").value = app.startRoutine;
+    }
+  }
+  app.startRoutine = null;
+  // "+ New" on Workout routines opens an empty session ready to save.
+  if (app.newRoutine && !w) {
+    $("#wType").value = "strength";
+    $("#wMode").value = "session";
+    showBoxes();
+    $("#wSessionName").placeholder = "Routine name, e.g. Upper A";
+  }
+  app.newRoutine = false;
+
   $("#wFav")?.addEventListener("change", (e) => {
     const f = state.workoutFavs[e.target.value];
     if (!f) return;
+    if (f.type === "routine") return loadRoutine(f);
     $("#wType").value = f.type;
     if ($("#wMode")) $("#wMode").value = "single";
     showBoxes();
@@ -367,6 +401,10 @@ function renderWorkout(root, app) {
     } else $("#wOtherName").value = f.name;
   });
 
+  const readRows = () =>
+    $$(".sess-row", root)
+      .map((r) => ({ name: $(".sName", r).value.trim(), sets: num($(".sSets", r)), reps: num($(".sReps", r)), weight: num($(".sWeight", r)) }))
+      .filter((r) => r.name || r.sets);
   const readOne = () => {
     const type = $("#wType").value;
     if (type === "strength") return { type, name: $("#wName").value.trim() || "Strength", sets: num($("#wSets")), reps: num($("#wReps")), weight: num($("#wWeight")) };
@@ -378,9 +416,7 @@ function renderWorkout(root, app) {
     const date = $("#wDate").value || localDate();
     const notes = $("#wNotes").value.trim();
     if (!$("#sessionBox").hidden) {
-      const rows = $$(".sess-row", root)
-        .map((r) => ({ name: $(".sName", r).value.trim(), sets: num($(".sSets", r)), reps: num($(".sReps", r)), weight: num($(".sWeight", r)) }))
-        .filter((r) => r.name || r.sets);
+      const rows = readRows();
       if (!rows.length) return toast("Add at least one exercise");
       const sessionId = uid();
       const sessionName = $("#wSessionName").value.trim() || "Session";
@@ -400,6 +436,15 @@ function renderWorkout(root, app) {
     app.go("tank");
   });
   $("#wFavSave")?.addEventListener("click", () => {
+    if (!$("#sessionBox").hidden) {
+      const exercises = readRows();
+      if (!exercises.length) return toast("Add at least one exercise");
+      const routine = { type: "routine", name: $("#wSessionName").value.trim() || "Routine", exercises };
+      state.workoutFavs = state.workoutFavs.filter((f) => f.name !== routine.name);
+      state.workoutFavs.push(routine);
+      app.save();
+      return toast(`Saved routine "${routine.name}"`);
+    }
     const fav = readOne();
     state.workoutFavs = state.workoutFavs.filter((f) => f.name !== fav.name);
     state.workoutFavs.push(fav);
@@ -450,4 +495,18 @@ function renderWorkout(root, app) {
     $("#pmTarget").value = $("#wWeight").value;
     plates();
   });
+}
+
+// Favorites first, then the most recent other foods, by name, up to eight.
+function quickMeals(state) {
+  const out = state.mealFavs.map((f) => ({ ...f, fav: true }));
+  const seen = new Set(out.map((q) => q.name.toLowerCase()));
+  for (const m of [...state.meals].reverse()) {
+    if (out.length >= 8) break;
+    const key = (m.name || "").toLowerCase();
+    if (!key || key === "meal" || seen.has(key)) continue;
+    seen.add(key);
+    out.push(m);
+  }
+  return out.slice(0, 8);
 }

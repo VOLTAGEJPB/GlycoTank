@@ -25,7 +25,7 @@ export function renderTank(root, app) {
   const plannedFromLog = tomorrowWorkouts.reduce((t, w) => t + workoutCost(w, s), 0);
 
   root.innerHTML = `
-    ${state.meta.personalized ? "" : `<button class="banner" data-go="settings" data-section="personalize">Using default targets. <strong>Personalize them →</strong></button>`}
+    ${state.meta.personalized ? "" : `<button class="banner" data-go="more" data-section="goals">Using default targets. <strong>Personalize them →</strong></button>`}
 
     <section class="card tank ${status.tone}">
       <div class="tank-head">

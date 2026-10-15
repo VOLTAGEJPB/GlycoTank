@@ -24,11 +24,12 @@ export function demoState() {
   let id = 0;
   for (let d = 13; d >= 0; d--) {
     const date = addDays(today, -d);
-    const picks = d === 0 ? [0, 1] : [d % 7, (d + 2) % 7, (d + 4) % 7];
-    for (const i of picks) {
+    const picks = d === 0 ? [0, 1, 2] : [d % 7, (d + 2) % 7, (d + 4) % 7];
+    picks.forEach((i, n) => {
       const [name, kcal, carbs, protein, fat, fiber] = MEALS[i];
-      st.meals.push({ id: "m" + id++, date, name, kcal, carbs, protein, fat, fiber, notes: "" });
-    }
+      const slot = d === 0 ? ["breakfast", "lunch", "snack"][n] : ["breakfast", "lunch", "dinner"][n];
+      st.meals.push({ id: "m" + id++, date, slot, name, kcal, carbs, protein, fat, fiber, notes: "" });
+    });
     if (d % 7 === 1 || d % 7 === 4) {
       st.workouts.push({ id: "w" + id++, date, type: "strength", name: "Back Squat", sets: 5, reps: 5, weight: 225, sessionName: "Leg day", notes: "" });
       st.workouts.push({ id: "w" + id++, date, type: "strength", name: "Romanian Deadlift", sets: 4, reps: 8, weight: 185, sessionName: "Leg day", notes: "" });
@@ -40,5 +41,12 @@ export function demoState() {
     }
     st.checks.push({ id: "c" + id++, date, mood: d % 4 === 0 ? "great" : "ok", sleep: 7 + (d % 3) * 0.5, rhr: 54 + (d % 4), notes: "" });
   }
+  st.profile.name = "Alex";
+  st.profile.measurements = [13, 10, 7, 4, 1].map((d, i) => ({ date: addDays(today, -d), weight: 188 - i * 0.8, waist: 34.5 - i * 0.2 }));
+  st.workoutFavs = [
+    { type: "routine", name: "Upper A", exercises: [{ name: "Bench Press", sets: 5, reps: 5, weight: 185 }, { name: "Pull-up", sets: 4, reps: 8, weight: 0 }, { name: "Overhead Press", sets: 3, reps: 8, weight: 115 }] },
+    { type: "routine", name: "Leg day", exercises: [{ name: "Back Squat", sets: 5, reps: 5, weight: 225 }, { name: "Romanian Deadlift", sets: 4, reps: 8, weight: 185 }] },
+    { type: "cardio", name: "Run", mins: 40, intensity: 4 },
+  ];
   return st;
 }

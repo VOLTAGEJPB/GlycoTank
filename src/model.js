@@ -147,6 +147,43 @@ export function streak(state, today) {
   return count;
 }
 
+// ---- Meal categories ----
+export const MEAL_SLOTS = [["breakfast", "Breakfast"], ["lunch", "Lunch"], ["dinner", "Dinner"], ["snack", "Snacks"]];
+
+export function slotForHour(hour) {
+  if (hour >= 4 && hour < 11) return "breakfast";
+  if (hour >= 11 && hour < 16) return "lunch";
+  if (hour >= 16 && hour < 22) return "dinner";
+  return "snack";
+}
+
+// Meals logged before categories existed have no slot; place them by the time
+// they were last saved, which is close to when they were eaten.
+export function mealSlot(m) {
+  if (MEAL_SLOTS.some(([k]) => k === m.slot)) return m.slot;
+  return m.updatedAt ? slotForHour(new Date(m.updatedAt).getHours()) : "snack";
+}
+
+// Sunday-to-Saturday week containing `today`, with how many meals each day has.
+export function weekLog(state, today) {
+  const [y, m, d] = today.split("-").map(Number);
+  const start = addDays(today, -new Date(y, m - 1, d).getDay());
+  return Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(start, i);
+    return { date, meals: state.meals.filter((x) => x.date === date).length, future: date > today };
+  });
+}
+
+// ---- Weight & measurements ----
+// One entry per date; logging again on the same day updates that entry.
+export function upsertMeasurement(list, entry) {
+  const out = (list || []).filter((x) => x.date !== entry.date);
+  const old = (list || []).find((x) => x.date === entry.date) || {};
+  const merged = { ...old, ...Object.fromEntries(Object.entries(entry).filter(([, v]) => v != null && v !== "")) };
+  out.push(merged);
+  return out.sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
 export function lastNDays(today, days) {
   return Array.from({ length: days }, (_, i) => addDays(today, -(days - 1 - i)));
 }

@@ -11,8 +11,7 @@ import { renderMeals } from "./views/meals.js";
 import { renderTank } from "./views/tank.js";
 import { renderLog, openLog } from "./views/log.js";
 import { renderCheckin } from "./views/checkin.js";
-import { renderHistory } from "./views/history.js";
-import { renderSettings } from "./views/settings.js";
+import { renderMore } from "./views/more.js";
 import { openOnboarding } from "./views/onboarding.js";
 
 // Accounts are required once the cloud backend is configured (see cloud-config.js).
@@ -23,8 +22,7 @@ const VIEWS = {
   tank: { title: "Tank", render: renderTank },
   log: { title: "Log", render: renderLog },
   checkin: { title: "Check-in", render: renderCheckin },
-  history: { title: "History", render: renderHistory },
-  settings: { title: "Settings", render: renderSettings },
+  more: { title: "More", render: renderMore },
 };
 
 const app = {
@@ -43,20 +41,24 @@ const app = {
     if (!app.editing && !document.querySelector("#onboard, #auth")) app.go(app.current);
   },
   go(view, section) {
+    // Settings and History now live under More.
+    if (view === "settings") [view, section] = ["more", section === "personalize" ? "goals" : section || null];
+    if (view === "history") [view, section] = ["more", "history"];
     if (view === "log") openLog(app, section, app.editing);
+    // More keeps its open page on re-renders (section undefined); null or "" goes back to the list.
+    if (view === "more" && section !== undefined) app.moreSection = section || null;
     app.current = view;
     const tabs = $$("#tabs button");
     tabs.forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
     const tab = tabs.findIndex((b) => b.dataset.view === view);
     $("#tabs").style.setProperty("--tab", tab);
     $("#tabInk").style.opacity = tab < 0 ? 0 : 1;
-    $("#settingsBtn").setAttribute("aria-current", view === "settings" ? "page" : "false");
     $("#title").textContent = VIEWS[view].title;
     const root = $("#view");
     VIEWS[view].render(root, app);
     if (!app.launching) enterView(root);
     window.scrollTo(0, 0);
-    if (section && view === "settings") $("#" + section)?.scrollIntoView({ block: "start" });
+
   },
   replaceState(next) {
     app.state = next;
@@ -91,16 +93,11 @@ document.addEventListener("click", (e) => {
     app.go(go.dataset.go, go.dataset.section);
   }
 });
-$("#settingsBtn").addEventListener("click", () => {
-  if (app.current !== "settings") haptic.tap();
-  app.editing = null;
-  app.go("settings");
-});
 $$("#tabs button").forEach((b) =>
   b.addEventListener("click", () => {
     if (b.dataset.view !== app.current) haptic.tap();
     app.editing = null;
-    app.go(b.dataset.view);
+    app.go(b.dataset.view, null);
   }),
 );
 
@@ -120,6 +117,7 @@ NativeApp.addListener("backButton", () => {
   const close = document.querySelector("#onboard .ob-close");
   if (close) return close.click();
   if (document.getElementById("onboard")) return;
+  if (app.current === "more" && app.moreSection) return app.go("more", null);
   if (app.current !== "meals" || app.editing) {
     app.editing = null;
     return app.go("meals");

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_SETTINGS, localDate, addDays, workoutCost, glycoSeries, glycoStatus, carbPlan, plannedCost,
   readiness, baselineRhr, streak, personalize, plateMath, dayTotals, parseMealText, mealNameFromText, parseNutritionLabel, fromOpenFoodFacts,
+  slotForHour, mealSlot, weekLog, upsertMeasurement,
 } from "../src/model.js";
 
 // Most tests turn everyday use off to check one effect at a time.
@@ -252,4 +253,31 @@ test("nutrition label OCR: real on-device output with columns read separately", 
   // Exact text ML Kit returned for a photographed US label on the Android emulator.
   const ocr = "Nutrition Facts\n8 servings per Container\nServing size\nAmount per serving\nCalories\nTotal Fat 8g\nSaturated Fat 1g\nTrans Fat Og\nCholesterol Omg\nSodium 160mg\nTotal Carbohydrate 37g\nDietary Fiber 4g\nTotal Sugars 12g\nProtein 3g\n2/3 cup (55g)\n230\n% Daily Value*\n10%\n5%\n0%\n7%\n13%\n14%";
   assert.deepEqual(parseNutritionLabel(ocr), { kcal: 230, carbs: 37, protein: 3, fat: 8, fiber: 4, serving: "2/3 cup (55g)" });
+});
+
+test("meals are grouped into breakfast, lunch, dinner and snacks", () => {
+  assert.equal(slotForHour(7), "breakfast");
+  assert.equal(slotForHour(12), "lunch");
+  assert.equal(slotForHour(18), "dinner");
+  assert.equal(slotForHour(23), "snack");
+  assert.equal(slotForHour(2), "snack");
+  assert.equal(mealSlot({ slot: "lunch", updatedAt: new Date(2026, 0, 1, 19).getTime() }), "lunch");
+  assert.equal(mealSlot({ updatedAt: new Date(2026, 0, 1, 8).getTime() }), "breakfast");
+  assert.equal(mealSlot({ slot: "brunch" }), "snack");
+  assert.equal(mealSlot({}), "snack");
+});
+
+test("week log runs Sunday to Saturday and counts meals per day", () => {
+  const st = { meals: [{ date: "2026-10-11" }, { date: "2026-10-15" }, { date: "2026-10-15" }, { date: "2026-10-10" }] };
+  const week = weekLog(st, "2026-10-15"); // a Thursday
+  assert.deepEqual(week.map((d) => d.date), ["2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16", "2026-10-17"]);
+  assert.deepEqual(week.map((d) => d.meals), [1, 0, 0, 0, 2, 0, 0]);
+  assert.deepEqual(week.map((d) => d.future), [false, false, false, false, false, true, true]);
+});
+
+test("measurements keep one entry per day, merged and sorted", () => {
+  let list = upsertMeasurement([], { date: "2026-10-10", weight: 185 });
+  list = upsertMeasurement(list, { date: "2026-10-03", weight: 187, waist: 34 });
+  list = upsertMeasurement(list, { date: "2026-10-10", waist: 33.5, weight: "" });
+  assert.deepEqual(list, [{ date: "2026-10-03", weight: 187, waist: 34 }, { date: "2026-10-10", weight: 185, waist: 33.5 }]);
 });
