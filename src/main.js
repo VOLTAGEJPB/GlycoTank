@@ -13,6 +13,7 @@ import { renderLog, openLog } from "./views/log.js";
 import { renderCheckin } from "./views/checkin.js";
 import { renderMore } from "./views/more.js";
 import { openOnboarding } from "./views/onboarding.js";
+import { startAds, pauseAds, resumeAds } from "./ads.js";
 
 // Accounts are required once the cloud backend is configured (see cloud-config.js).
 const ACCOUNT_REQUIRED = true;
@@ -74,7 +75,9 @@ const app = {
     resetState(app.state);
     await flush();
     app.go("meals");
+    await pauseAds();
     await requireAccount();
+    await resumeAds();
   },
   showIntro,
 };
@@ -104,7 +107,16 @@ $$("#tabs button").forEach((b) =>
 // ---------- First-run setup ----------
 function showIntro(options) {
   if (document.getElementById("onboard")) return;
-  openOnboarding(app, { ...options, onFinish: () => app.go("meals") });
+  pauseAds();
+  openOnboarding(app, {
+    ...options,
+    onFinish: () => {
+      app.go("meals");
+      resumeAds();
+      startAds();
+    },
+    onClose: resumeAds,
+  });
 }
 
 // Android back button: close any open dialog, then go back to Meals, then exit.
@@ -189,6 +201,7 @@ async function requireAccount() {
     await requireAccount();
   }
   if (!app.state.meta.introSeen || params.has("intro")) showIntro({ startAt: +(params.get("intro") || 0) });
+  else if (!params.has("demo")) startAds();
   if (params.has("demo") && params.get("scroll")) document.querySelectorAll(".card")[+params.get("scroll")]?.scrollIntoView({ block: "start" });
   // Demo only: pre-fill fields for screenshots, e.g. &fill=mName:Chicken bowl|mQuick:650 cal 70c
   if (params.has("demo") && params.get("fill")) {

@@ -19,7 +19,7 @@ const choice = (name, value, label, sub, current) =>
   `<button type="button" class="choice" data-choice="${name}" data-value="${value}" aria-pressed="${String(value) === String(current)}">
     <strong>${label}</strong>${sub ? `<span>${sub}</span>` : ""}</button>`;
 
-export function openOnboarding(app, { startAt = 0, onFinish } = {}) {
+export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
   const s = app.state.settings;
   // Working copy of the answers; only saved when the user reaches the plan step.
   const p = {
@@ -237,7 +237,10 @@ export function openOnboarding(app, { startAt = 0, onFinish } = {}) {
   function close() {
     root.classList.add("out");
     document.body.classList.remove("onboarding");
-    setTimeout(() => root.remove(), 350);
+    setTimeout(() => {
+      root.remove();
+      onClose?.();
+    }, 350);
   }
 
   function finish() {

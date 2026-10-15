@@ -34,7 +34,7 @@ h2 { font-size: 18px; margin-bottom: 10px; }
 
 .topbar {
   position: sticky; top: 0; z-index: 10;
-  padding: calc(var(--safe-top) + 12px) 18px 12px;
+  padding: calc(var(--safe-top) + var(--ad-h, 0px) + 12px) 18px 12px;
   background: rgba(15, 17, 21, 0.88);
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
@@ -68,7 +68,7 @@ main {
 #tabs button[aria-current="page"] { color: var(--accent); }
 
 .card {
-  scroll-margin-top: calc(var(--safe-top) + 72px);
+  scroll-margin-top: calc(var(--safe-top) + var(--ad-h, 0px) + 72px);
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 16px; margin-bottom: 14px;
 }

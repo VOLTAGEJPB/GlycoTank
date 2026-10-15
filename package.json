@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/VOLTAGEJPB/GlycoTank#readme",
   "dependencies": {
+    "@capacitor-community/admob": "^8.2.1",
     "@capacitor-mlkit/barcode-scanning": "^8.2.1",
     "@capacitor-mlkit/text-recognition": "^8.2.1",
     "@capacitor/app": "^8.1.2",
