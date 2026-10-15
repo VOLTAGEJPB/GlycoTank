@@ -53,6 +53,6 @@ export function renderCheckin(root, app) {
     else state.checks.push({ id: uid(), ...data });
     app.save();
     success("Check-in saved");
-    app.go("today");
+    app.go("tank");
   });
 }

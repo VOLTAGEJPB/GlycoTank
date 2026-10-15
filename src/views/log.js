@@ -232,7 +232,7 @@ function renderMeal(root, app) {
     app.editing = null;
     app.save();
     success(m ? "Meal updated" : "Meal saved");
-    app.go("today");
+    app.go("meals");
   });
   $("#mFavSave").addEventListener("click", () => {
     const { notes, ...fav } = read();
@@ -248,7 +248,7 @@ function renderMeal(root, app) {
     app.editing = null;
     app.save();
     toast("Meal deleted");
-    app.go("today");
+    app.go("meals");
   });
 }
 
@@ -387,7 +387,7 @@ function renderWorkout(root, app) {
       for (const r of rows) state.workouts.push({ id: uid(), date, type: "strength", ...r, name: r.name || "Strength", sessionId, sessionName, notes });
       app.save();
       success(`Session saved (${rows.length} exercise${rows.length === 1 ? "" : "s"})`);
-      return app.go("today");
+      return app.go("tank");
     }
     const data = { ...readOne(), date, notes };
     if (w) {
@@ -397,7 +397,7 @@ function renderWorkout(root, app) {
     app.editing = null;
     app.save();
     success(w ? "Workout updated" : "Workout saved");
-    app.go("today");
+    app.go("tank");
   });
   $("#wFavSave")?.addEventListener("click", () => {
     const fav = readOne();
@@ -412,7 +412,7 @@ function renderWorkout(root, app) {
     app.editing = null;
     app.save();
     toast("Workout deleted");
-    app.go("today");
+    app.go("tank");
   });
 
   // Rest timer

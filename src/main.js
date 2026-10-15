@@ -7,7 +7,8 @@ import { openAuth } from "./views/auth.js";
 import { $, $$ } from "./ui.js";
 import { enterView, haptic, reducedMotion } from "./motion.js";
 import { glycoSeries, localDate } from "./model.js";
-import { renderToday } from "./views/today.js";
+import { renderMeals } from "./views/meals.js";
+import { renderTank } from "./views/tank.js";
 import { renderLog, openLog } from "./views/log.js";
 import { renderCheckin } from "./views/checkin.js";
 import { renderHistory } from "./views/history.js";
@@ -18,7 +19,8 @@ import { openOnboarding } from "./views/onboarding.js";
 const ACCOUNT_REQUIRED = true;
 
 const VIEWS = {
-  today: { title: "GlycoTank", render: renderToday },
+  meals: { title: "Meals", render: renderMeals },
+  tank: { title: "Tank", render: renderTank },
   log: { title: "Log", render: renderLog },
   checkin: { title: "Check-in", render: renderCheckin },
   history: { title: "History", render: renderHistory },
@@ -28,7 +30,7 @@ const VIEWS = {
 const app = {
   version: __APP_VERSION__,
   state: null,
-  current: "today",
+  current: "meals",
   editing: null,
   save() {
     saveState(app.state);
@@ -45,7 +47,10 @@ const app = {
     app.current = view;
     const tabs = $$("#tabs button");
     tabs.forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
-    $("#tabs").style.setProperty("--tab", tabs.findIndex((b) => b.dataset.view === view));
+    const tab = tabs.findIndex((b) => b.dataset.view === view);
+    $("#tabs").style.setProperty("--tab", tab);
+    $("#tabInk").style.opacity = tab < 0 ? 0 : 1;
+    $("#settingsBtn").setAttribute("aria-current", view === "settings" ? "page" : "false");
     $("#title").textContent = VIEWS[view].title;
     const root = $("#view");
     VIEWS[view].render(root, app);
@@ -57,7 +62,7 @@ const app = {
     app.state = next;
     saveState(next);
     flush();
-    app.go("today");
+    app.go("meals");
   },
   // Sign out: clear this device and show the sign-in screen again.
   async signOut() {
@@ -66,7 +71,7 @@ const app = {
     app.state = emptyState();
     resetState(app.state);
     await flush();
-    app.go("today");
+    app.go("meals");
     await requireAccount();
   },
   showIntro,
@@ -86,6 +91,11 @@ document.addEventListener("click", (e) => {
     app.go(go.dataset.go, go.dataset.section);
   }
 });
+$("#settingsBtn").addEventListener("click", () => {
+  if (app.current !== "settings") haptic.tap();
+  app.editing = null;
+  app.go("settings");
+});
 $$("#tabs button").forEach((b) =>
   b.addEventListener("click", () => {
     if (b.dataset.view !== app.current) haptic.tap();
@@ -97,10 +107,10 @@ $$("#tabs button").forEach((b) =>
 // ---------- First-run setup ----------
 function showIntro(options) {
   if (document.getElementById("onboard")) return;
-  openOnboarding(app, { ...options, onFinish: () => app.go("today") });
+  openOnboarding(app, { ...options, onFinish: () => app.go("meals") });
 }
 
-// Android back button: close any open dialog, then go back to Today, then exit.
+// Android back button: close any open dialog, then go back to Meals, then exit.
 NativeApp.addListener("backButton", () => {
   const open = document.querySelector("dialog[open]");
   if (open) return open.close();
@@ -110,9 +120,9 @@ NativeApp.addListener("backButton", () => {
   const close = document.querySelector("#onboard .ob-close");
   if (close) return close.click();
   if (document.getElementById("onboard")) return;
-  if (app.current !== "today" || app.editing) {
+  if (app.current !== "meals" || app.editing) {
     app.editing = null;
-    return app.go("today");
+    return app.go("meals");
   }
   NativeApp.exitApp();
 });
@@ -166,7 +176,7 @@ async function requireAccount() {
   const skipLaunch = params.has("demo") && !params.has("launch");
   if (skipLaunch) $("#launch").remove();
   app.launching = !skipLaunch;
-  app.go(params.has("demo") && VIEWS[params.get("view")] ? params.get("view") : "today", params.get("section") || undefined);
+  app.go(params.has("demo") && VIEWS[params.get("view")] ? params.get("view") : "meals", params.get("section") || undefined);
   if (app.launching) {
     const today = localDate();
     await playLaunch(glycoSeries(app.state, today)[today].end / app.state.settings.glycoCap);

@@ -1,23 +1,20 @@
 import {
-  localDate, addDays, dayTotals, glycoSeries, glycoStatus, carbPlan, plannedCost, readinessFor, latestCheck,
-  streak, lastNDays, workoutCost, parseMealText, mealNameFromText,
+  localDate, addDays, glycoSeries, glycoStatus, carbPlan, plannedCost, readinessFor, latestCheck,
+  streak, lastNDays, workoutCost,
 } from "../model.js";
-import { uid } from "../store.js";
-import { $, $$, esc, round, num, progress, select, success } from "../ui.js";
-import { native } from "../scan.js";
+import { $, esc, round, num, select } from "../ui.js";
 import { animate, countUp } from "../motion.js";
-import { workoutLine, mealLine } from "./entries.js";
+import { workoutLine } from "./entries.js";
 
 let chartDays = 14;
 
-export function renderToday(root, app) {
+export function renderTank(root, app) {
   const { state } = app;
   const s = state.settings;
   const today = localDate();
   const series = glycoSeries(state, today);
   const level = series[today].end;
   const status = glycoStatus(level, s.glycoCap);
-  const totals = dayTotals(state, today);
   const workouts = state.workouts.filter((w) => w.date === today);
   const tomorrow = addDays(today, 1);
   const tomorrowWorkouts = state.workouts.filter((w) => w.date === tomorrow);
@@ -26,38 +23,9 @@ export function renderToday(root, app) {
   const weekWorkouts = state.workouts.filter((w) => week.includes(w.date)).length;
   const weekProtein = state.meals.filter((m) => week.includes(m.date)).reduce((t, m) => t + (+m.protein || 0), 0);
   const plannedFromLog = tomorrowWorkouts.reduce((t, w) => t + workoutCost(w, s), 0);
-  const quick = quickMeals(state);
-  const kcalLeft = s.kcalTarget - totals.kcal;
 
   root.innerHTML = `
     ${state.meta.personalized ? "" : `<button class="banner" data-go="settings" data-section="personalize">Using default targets. <strong>Personalize them →</strong></button>`}
-
-    <section class="card meal-first">
-      <div class="card-head"><h2>Log a meal</h2><span class="sub" id="kcalLeft">${kcalLeft >= 0 ? `${round(kcalLeft)} kcal left` : `${round(-kcalLeft)} kcal over`}</span></div>
-      <form id="quickMeal" class="quick-add">
-        <input id="qmText" placeholder="e.g. Oats 300 cal 54c 10p" autocomplete="off" enterkeyhint="done" aria-label="Quick add a meal">
-        <button class="btn primary">Add</button>
-      </form>
-      <div class="scan-row">
-        <button class="btn scan-btn" data-scan="barcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v14H3V5zm3 0h1v14H6V5zm2 0h2v14H8V5zm3 0h1v14h-1V5zm3 0h2v14h-2V5zm3 0h1v14h-1V5zm2 0h2v14h-2V5z"/></svg>${native ? "Scan barcode" : "Look up barcode"}</button>
-        ${native ? `<button class="btn scan-btn" data-scan="label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM8 9h8v2H8V9zm0 4h6v2H8v-2z"/></svg>Scan label</button>` : ""}
-      </div>
-      ${quick.length ? `<div class="label mt">Tap to add again</div>
-      <div class="chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${q.fav ? "★ " : ""}${esc(q.name)}<small>${round(q.kcal)} kcal</small></button>`).join("")}</div>` : ""}
-      <button class="btn ghost wide mt" data-go="log" data-section="meal">Enter a meal in detail</button>
-      <div class="stats mt">
-        <div><div class="label">Calories</div><div class="kpi">${round(totals.kcal)}</div><div class="sub">of ${s.kcalTarget}</div></div>
-        <div><div class="label">Protein</div><div class="kpi">${round(totals.protein)}<small>g</small></div><div class="sub">of ${s.proteinTarget} g</div></div>
-        <div><div class="label">Carbs</div><div class="kpi">${round(totals.carbs)}<small>g</small></div><div class="sub">guide ${s.carbGuide} g</div></div>
-        <div><div class="label">Fiber</div><div class="kpi">${round(totals.fiber)}<small>g</small></div><div class="sub">of ${s.fiberTarget} g</div></div>
-      </div>
-      <div class="label mt">Protein</div>${progress(totals.protein, s.proteinTarget, "good")}
-    </section>
-
-    <section class="card">
-      <div class="card-head"><h2>Today's meals</h2><button class="btn small" data-go="log" data-section="meal">+ Add</button></div>
-      ${totals.meals.length ? `<ul class="entries">${totals.meals.map(mealLine).join("")}</ul>` : `<p class="hint">No meals logged yet.</p>`}
-    </section>
 
     <section class="card tank ${status.tone}">
       <div class="tank-head">
@@ -102,37 +70,6 @@ export function renderToday(root, app) {
 
   `;
 
-  // Quick add: "Chicken bowl 650 cal 70c 45p" saves right away. Text with no
-  // numbers opens the full form with the name filled in.
-  $("#quickMeal").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const text = $("#qmText").value.trim();
-    const vals = parseMealText(text);
-    const name = mealNameFromText(text);
-    if (![vals.kcal, vals.carbs, vals.protein, vals.fat].some((v) => v != null)) {
-      app.editing = null;
-      app.prefill = name ? { name } : null;
-      return app.go("log", "meal");
-    }
-    for (const k in vals) vals[k] ??= 0;
-    if (!vals.kcal) vals.kcal = Math.round(vals.carbs * 4 + vals.protein * 4 + vals.fat * 9);
-    addMeal(app, { name: name || "Meal", ...vals });
-  });
-  $$("[data-quick]", root).forEach((b) =>
-    b.addEventListener("click", () => {
-      const { name, kcal, carbs, protein, fat, fiber } = quick[b.dataset.quick];
-      addMeal(app, { name, kcal, carbs, protein, fat, fiber });
-    }),
-  );
-  // The scan buttons open the meal form and start the scan from the same tap.
-  $$("[data-scan]", root).forEach((b) =>
-    b.addEventListener("click", () => {
-      app.editing = null;
-      app.autoScan = b.dataset.scan;
-      app.go("log", "meal");
-    }),
-  );
-
   const updatePlan = () => {
     const cost = plannedFromLog + plannedCost({ sets: num($("#planSets")), mins: num($("#planMins")), intensity: num($("#planInt")) }, s);
     const plan = carbPlan(level, cost, s);
@@ -158,27 +95,6 @@ export function renderToday(root, app) {
   drawChart(series, today, s.glycoCap, 0);
   if (app.launching) app.revealToday = reveal;
   else reveal();
-}
-
-function addMeal(app, meal) {
-  app.state.meals.push({ id: uid(), date: localDate(), notes: "", ...meal });
-  app.save();
-  success(`Added ${meal.name}`);
-  app.go("today");
-}
-
-// Favorites first, then the most recent other meals, by name, up to six.
-function quickMeals(state) {
-  const out = state.mealFavs.map((f) => ({ ...f, fav: true }));
-  const seen = new Set(out.map((q) => q.name.toLowerCase()));
-  for (const m of [...state.meals].reverse()) {
-    if (out.length >= 6) break;
-    const key = (m.name || "").toLowerCase();
-    if (!key || key === "meal" || seen.has(key)) continue;
-    seen.add(key);
-    out.push(m);
-  }
-  return out.slice(0, 6);
 }
 
 // Draws the trend; `progress` (0..1) reveals the line from left to right.
