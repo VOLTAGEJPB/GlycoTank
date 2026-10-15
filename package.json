@@ -1,6 +1,6 @@
 {
   "name": "glycotank",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "GlycoTank: local-first nutrition and training tracker with a glycogen tank estimate",
   "scripts": {
     "dev": "vite",
