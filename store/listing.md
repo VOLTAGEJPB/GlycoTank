@@ -77,7 +77,7 @@ First release of GlycoTank.
 
 ## Screenshot captions (in order)
 
-1. Track every meal: Today opens on quick add, scan, and one-tap repeat meals
+1. Track every meal: Meals opens on this week's logging, today's totals, and Breakfast, Lunch, Dinner and Snacks
 2. Know your fuel tank: the tank gauge and trend
 3. Plan tomorrow's carbs: the carb planner
 4. Every set, every session: workout logging, rest timer, plate math
