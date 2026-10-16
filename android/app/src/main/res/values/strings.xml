@@ -4,6 +4,6 @@
     <string name="title_activity_main">GlycoTank</string>
     <string name="package_name">com.joel.glycotank</string>
     <string name="custom_url_scheme">com.joel.glycotank</string>
-    <!-- Google's test AdMob app ID; replace with the real one from AdMob. -->
-    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
+    <!-- GlycoTank's AdMob app ID (Android). -->
+    <string name="admob_app_id">ca-app-pub-1749311923941430~2137254260</string>
 </resources>

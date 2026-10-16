@@ -1,18 +1,19 @@
 // Banner ad across the top of the app (Android and iOS only; the web build
-// shows no ads). Until the AdMob account exists, Google's test ad units are
-// used: they show a "Test Ad" banner and never pay. To go live, put the real
-// AdMob app IDs in AndroidManifest/Info.plist and the banner unit IDs below,
-// then set TESTING to false.
+// shows no ads). Android uses GlycoTank's real AdMob banner. iOS still uses
+// Google's test unit (a "Test Ad" banner that never pays) until the iOS app is
+// added in AdMob: then put its app ID in Info.plist and its banner unit below,
+// and set ios to false in TESTING. Emulators always get test ads.
 import { Capacitor } from "@capacitor/core";
 import { AdMob, BannerAdPosition, BannerAdSize, BannerAdPluginEvents } from "@capacitor-community/admob";
 
-const TESTING = true;
 const BANNER_ID = {
-  android: "ca-app-pub-3940256099942544/9214589741", // Google's test adaptive banner
-  ios: "ca-app-pub-3940256099942544/2435281174",
+  android: "ca-app-pub-1749311923941430/7720753433", // "Top banner"
+  ios: "ca-app-pub-3940256099942544/2435281174", // Google's test banner
 };
+const IS_TEST = { android: false, ios: true };
 
 const platform = Capacitor.getPlatform();
+const TESTING = IS_TEST[platform] ?? true;
 export const adsSupported = Capacitor.isNativePlatform() && !!BANNER_ID[platform];
 
 let started = false;
@@ -57,9 +58,17 @@ export async function startAds() {
   try {
     AdMob.addListener(BannerAdPluginEvents.SizeChanged, (size) => setHeight(showing && !paused ? size.height : 0));
     AdMob.addListener(BannerAdPluginEvents.FailedToLoad, () => setHeight(0));
-    const consent = await AdMob.requestConsentInfo();
-    let canRequest = consent.canRequestAds;
-    if (!canRequest && consent.isConsentFormAvailable) canRequest = (await AdMob.showConsentForm()).canRequestAds;
+    // If the consent check itself fails (no privacy message set up in AdMob
+    // yet, or no network), still start ads; Google then limits what it serves
+    // where consent is required.
+    let canRequest = true;
+    try {
+      const consent = await AdMob.requestConsentInfo();
+      canRequest = consent.canRequestAds;
+      if (!canRequest && consent.isConsentFormAvailable) canRequest = (await AdMob.showConsentForm()).canRequestAds;
+    } catch (e) {
+      console.warn("Ad consent check failed", e);
+    }
     if (!canRequest) return;
     await AdMob.initialize({ initializeForTesting: TESTING });
     await show();
