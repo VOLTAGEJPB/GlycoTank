@@ -6,26 +6,26 @@ Character limits are noted in brackets; every field below fits.
 
 - **App name** (Apple 30 / Google 30): `GlycoTank: Carb & Fuel Tracker` (30)
 - **Category:** Health & Fitness
-- **Price:** Free, no in-app purchases, no ads
+- **Price:** Free, no in-app purchases. Contains ads on Android (AdMob banner); iOS has none yet
 - **Support URL:** https://glycotank.voltagejpb.com/support/
 - **Marketing URL:** https://glycotank.voltagejpb.com
 - **Privacy policy URL:** https://glycotank.voltagejpb.com/privacy/
 - **Contact email:** joel.perez5588@gmail.com
-- **Content rating:** Everyone / 4+ (no user-generated content shared with others, no ads, no web browsing)
+- **Content rating:** Everyone / 4+ (no user-generated content shared with others, no web browsing; the Android app shows AdMob banner ads)
 - **App review sign-in:** Apple and Google need a demo account. Create one in the app before submitting (any email you can receive a code at) and enter its email and password in App Store Connect → App Review Information and Play Console → App access.
 
 ## Apple App Store
 
 - **Subtitle** (30): `Fuel, macros & readiness` (24)
 - **Promotional text** (170, can be changed anytime without review):
-  `Know when you're fueled to train. GlycoTank estimates your glycogen "fuel tank" from your meals and workouts, and plans tomorrow's carbs. No ads, never sold.` (159)
+  `Know when you're fueled to train. GlycoTank estimates your glycogen "fuel tank" from your meals and workouts, and plans tomorrow's carbs. Your data is never sold.` (162)
 - **Keywords** (100, comma-separated, no spaces needed):
   `glycogen,carb cycling,macro tracker,meal log,workout log,protein,readiness,nutrition,fitness,diet` (97)
 
 ## Google Play
 
 - **Short description** (80):
-  `Track meals & workouts and see your glycogen fuel tank. Private, no ads.` (72)
+  `Track meals & workouts and see your glycogen fuel tank. Private, never sold.` (76)
 
 ## Full description (both stores, 4000)
 
@@ -64,7 +64,7 @@ FAST LOGGING
 • Rest timer and plate math built in
 
 PRIVATE AND BACKED UP
-• No ads, no tracking, and your data is never sold
+• Your data is never sold or shared with advertisers
 • Your log is backed up privately to your account and follows you to a new phone
 • Works offline and syncs when you're back online
 • Export to a spreadsheet anytime, or delete your account and data in the app
