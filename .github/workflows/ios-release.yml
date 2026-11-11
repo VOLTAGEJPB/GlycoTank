@@ -12,6 +12,8 @@ name: iOS App Store build
 
 on:
   workflow_dispatch:
+  push:
+    tags: ["ios-v*"]   # e.g. git tag ios-v1.0.4-5 && git push origin ios-v1.0.4-5
 
 jobs:
   release:
