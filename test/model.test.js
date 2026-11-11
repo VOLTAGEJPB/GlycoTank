@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   DEFAULT_SETTINGS, localDate, addDays, workoutCost, glycoSeries, glycoStatus, carbPlan, plannedCost,
   readiness, baselineRhr, streak, personalize, plateMath, dayTotals, parseMealText, mealNameFromText, parseNutritionLabel, fromOpenFoodFacts,
-  slotForHour, mealSlot, weekLog, upsertMeasurement,
+  slotForHour, mealSlot, weekLog, upsertMeasurement, maxRate,
 } from "../src/model.js";
 
 // Most tests turn everyday use off to check one effect at a time.
@@ -166,6 +166,30 @@ test("personalize: cutting applies a deficit but never goes below the floor", ()
   assert.equal(cut.calorieFloorApplied, true);
   const maintain = personalize({ ...base, goal: "maintain", lbPerWeek: 2 });
   assert.ok(maintain.kcalTarget > 1200);
+});
+
+test("personalize: pace, activity, floor and weeks to goal", () => {
+  // 193 lb, 6'3", 23-year-old man, no training: BMR 1955.6
+  const base = { weight: 193, weightUnits: "lb", heightUnits: "ftin", heightFt: 6, heightIn: 3, age: 23, sex: "m", daysPerWeek: 0, cardioMinsPerWeek: 0 };
+  assert.equal(personalize({ ...base, goal: "maintain" }).kcalTarget, 2347);
+  const one = personalize({ ...base, goal: "cut", lbPerWeek: 1, goalWeight: 180 });
+  assert.equal(one.kcalTarget, 1847);
+  assert.equal(one.actualLbPerWeek, -1);
+  assert.equal(one.weeksToGoal, 13);
+  // Pace is capped at ~1% of body weight (1.75 lb here); the 1,500 floor then slows it.
+  const fast = personalize({ ...base, goal: "cut", lbPerWeek: 3 });
+  assert.equal(fast.lbPerWeek, -1.75);
+  assert.equal(fast.kcalTarget, 1500);
+  assert.equal(fast.calorieFloorApplied, true);
+  assert.equal(fast.actualLbPerWeek, -1.69);
+  // A more active day raises calories, so the same pace stays above the floor.
+  const active = personalize({ ...base, activity: "active", goal: "cut", lbPerWeek: 1.75 });
+  assert.equal(active.kcalTarget, 2059); // BMR 1956 × 1.5 − 875
+  assert.equal(active.calorieFloorApplied, false);
+  // A goal weight in the wrong direction gives no date.
+  assert.equal(personalize({ ...base, goal: "cut", lbPerWeek: 1, goalWeight: 200 }).weeksToGoal, null);
+  assert.equal(maxRate("cut", 140), 1.25);
+  assert.equal(maxRate("gain", 140), 1);
 });
 
 test("meal quick entry parsing", () => {

@@ -189,11 +189,29 @@ export function lastNDays(today, days) {
 }
 
 // ---- Personalized targets ----
-// Mifflin-St Jeor BMR × 1.2, plus exercise calories from METs (Compendium of
-// Physical Activities), adjusted for the weekly weight-change goal at
-// ~3,500 kcal per pound.
+// Mifflin-St Jeor BMR × a daily-activity factor (life outside workouts), plus
+// exercise calories from METs (Compendium of Physical Activities), adjusted for
+// the weekly weight-change goal at ~3,500 kcal per pound.
 
-const KG_PER_LB = 0.45359237;
+export const KG_PER_LB = 0.45359237;
+
+// Everyday movement outside planned exercise.
+export const ACTIVITY = {
+  desk: { factor: 1.2, label: "Mostly sitting", sub: "Desk job, under ~5,000 steps a day" },
+  light: { factor: 1.35, label: "Lightly active", sub: "Some walking, ~5,000–8,000 steps" },
+  active: { factor: 1.5, label: "Active", sub: "On your feet most of the day, ~8,000–12,000 steps" },
+  physical: { factor: 1.7, label: "Very active", sub: "Physical job or 12,000+ steps" },
+};
+
+// Fastest pace offered, in lb per week: about 1% of body weight for fat loss
+// (at most 2 lb), 1 lb for muscle gain.
+export function maxRate(goal, weightLb) {
+  if (goal === "gain") return 1;
+  if (goal !== "cut") return 0;
+  return Math.max(0.5, Math.min(2, Math.floor((weightLb || 0) * 0.01 * 4) / 4));
+}
+
+export const calorieFloor = (sex) => (sex === "f" ? 1200 : 1500);
 
 export function bmr({ kg, cm, age, sex }) {
   if (!kg || !cm) return 0;
@@ -213,15 +231,22 @@ export function personalize(p) {
   const sets = n(p.setsPerSession);
   const cardioMins = n(p.cardioMinsPerWeek);
   const intensity = clamp(n(p.cardioIntensity) || 3, 1, 5);
-  let lbPerWeek = clamp(n(p.lbPerWeek), -2, 2);
-  if (goal === "maintain") lbPerWeek = 0;
-  if (goal === "cut") lbPerWeek = -Math.abs(lbPerWeek);
-  if (goal === "gain") lbPerWeek = Math.abs(lbPerWeek);
+  const weightLb = kg / KG_PER_LB;
+  const pace = Math.min(Math.abs(n(p.lbPerWeek)), maxRate(goal, weightLb));
+  const lbPerWeek = goal === "cut" ? -pace : goal === "gain" ? pace : 0;
+  const activity = ACTIVITY[p.activity] || ACTIVITY.desk;
 
   const exerciseWeek = kcalFromMet(kg, 3.5, sets * 2 * days) + kcalFromMet(kg, CARDIO_MET[intensity], cardioMins);
-  const tdee = bmr({ kg, cm, age: n(p.age), sex: p.sex }) * 1.2 + exerciseWeek / 7;
-  const floor = p.sex === "f" ? 1200 : 1500;
-  const kcalTarget = Math.round(Math.max(floor, tdee + (lbPerWeek * 3500) / 7));
+  const tdee = bmr({ kg, cm, age: n(p.age), sex: p.sex }) * activity.factor + exerciseWeek / 7;
+  const floor = calorieFloor(p.sex);
+  const wanted = tdee + (lbPerWeek * 3500) / 7;
+  const kcalTarget = Math.round(Math.max(floor, wanted));
+  // The pace this calorie target actually gives (slower when the floor applies).
+  const actualLbPerWeek = Math.round((((kcalTarget - tdee) * 7) / 3500) * 100) / 100;
+  // Weeks to reach the goal weight, when one is set in the direction of the goal.
+  const goalLb = n(p.goalWeight) ? (p.weightUnits === "kg" ? n(p.goalWeight) / KG_PER_LB : n(p.goalWeight)) : 0;
+  const toGo = goalLb ? goalLb - weightLb : 0;
+  const weeksToGoal = toGo && actualLbPerWeek && Math.sign(toGo) === Math.sign(actualLbPerWeek) ? Math.ceil(toGo / actualLbPerWeek) : null;
 
   const proteinPerKg = goal === "cut" ? (Math.abs(lbPerWeek) >= 0.75 ? 2.2 : 2.0) : goal === "gain" ? 1.8 : 2.0;
   const fatPerKg = goal === "cut" ? 0.6 : goal === "gain" ? 1.0 : 0.8;
@@ -242,7 +267,12 @@ export function personalize(p) {
     setCost: +clamp(5.5 + (kg > 90 ? 0.7 : kg < 65 ? -0.5 : 0), 4.5, 7.5).toFixed(1),
     cardioGpm: kg < 65 ? 0.25 : kg > 90 ? 0.36 : 0.33,
     dailyUse: Math.round(clamp(kg * 1.8, 100, 220)),
-    calorieFloorApplied: tdee + (lbPerWeek * 3500) / 7 < floor,
+    calorieFloorApplied: wanted < floor,
+    floor,
+    wantedKcal: Math.round(wanted),
+    lbPerWeek,
+    actualLbPerWeek,
+    weeksToGoal,
   };
 }
 

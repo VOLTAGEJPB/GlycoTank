@@ -1,4 +1,5 @@
-import { personalize, DEFAULT_SETTINGS, localDate, mealSlot } from "../model.js";
+import { personalize, DEFAULT_SETTINGS, localDate, mealSlot, ACTIVITY } from "../model.js";
+import { rateText, projectionText, floorText } from "./plan-text.js";
 import { normalize, emptyState } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 import { shareFile, toCsv, applyReminders, remindersSupported } from "../native.js";
@@ -62,10 +63,12 @@ export function renderSettings(root, app, show = group) {
       ${p.heightUnits === "ftin"
         ? `<div class="row2">${field("pFt", "Height (ft)", 'type="number" inputmode="numeric" min="3" max="8"', p.heightFt ?? "")}${field("pIn", "(in)", 'type="number" inputmode="numeric" min="0" max="11"', p.heightIn ?? "")}</div>`
         : field("pCm", "Height (cm)", 'type="number" inputmode="numeric" min="100" max="240"', p.heightCm ?? "")}
+      ${select("pAct", "Daily activity (outside workouts)", Object.entries(ACTIVITY).map(([k, a]) => [k, `${a.label} · ${a.sub}`]), p.activity || "desk")}
       <div class="row2">
         ${select("pGoal", "Goal", [["maintain", "Maintain weight"], ["cut", "Lose fat"], ["gain", "Build muscle"]], p.goal)}
-        ${field("pRate", "Change per week (lb)", 'type="number" inputmode="decimal" min="0" max="2" step="0.25" placeholder="e.g. 1"', p.lbPerWeek ?? "")}
+        ${field("pGoalWeight", `Goal weight (${p.weightUnits})`, 'type="number" inputmode="decimal" min="30"', p.goalWeight ?? "")}
       </div>
+      ${field("pRate", "Change per week (lb)", 'type="number" inputmode="decimal" min="0" max="2" step="0.25" placeholder="e.g. 1"', p.lbPerWeek ?? "")}
       <div class="row2">
         ${field("pDays", "Training days / week", 'type="number" inputmode="numeric" min="0" max="7"', p.daysPerWeek)}
         ${field("pSets", "Hard sets / session", 'type="number" inputmode="numeric" min="0"', p.setsPerSession)}
@@ -140,12 +143,14 @@ export function renderSettings(root, app, show = group) {
     ...p,
     weight: num($("#pWeight")), age: num($("#pAge")), sex: $("#pSex").value,
     heightFt: num($("#pFt")), heightIn: num($("#pIn")), heightCm: num($("#pCm")),
+    activity: $("#pAct").value, goalWeight: num($("#pGoalWeight")),
     goal: $("#pGoal").value, lbPerWeek: num($("#pRate")), daysPerWeek: num($("#pDays")), setsPerSession: num($("#pSets")),
     cardioMinsPerWeek: num($("#pCardio")), cardioIntensity: +$("#pInt").value, lowCarb: $("#pLowCarb").checked,
   });
   const showResult = () => {
     const prof = readProfile();
     $("#pRate").closest(".field").hidden = prof.goal === "maintain";
+    $("#pGoalWeight").closest(".field").hidden = prof.goal === "maintain";
     const r = personalize(prof);
     $("#pApply").disabled = !r;
     $("#pOut").innerHTML = r
@@ -155,7 +160,9 @@ export function renderSettings(root, app, show = group) {
          <div><span class="label">Fat</span><strong>${r.fatTarget} g</strong></div>
          <div><span class="label">Fiber</span><strong>${r.fiberTarget} g</strong></div>
          <div><span class="label">Tank</span><strong>${r.glycoCap} g</strong></div>
-         ${r.calorieFloorApplied ? `<p class="hint full">We don't go below ${prof.sex === "f" ? "1,200" : "1,500"} calories a day without professional guidance, so your rate of change will be slower.</p>` : ""}`
+         ${prof.goal !== "maintain" && Math.abs(r.lbPerWeek) + 1e-6 < Math.abs(+prof.lbPerWeek || 0) ? `<p class="hint full">Pace capped at ${rateText(r.lbPerWeek, prof)} a week${prof.goal === "cut" ? ", about 1% of your body weight" : ""}, the most we recommend.</p>` : ""}
+         ${r.calorieFloorApplied ? `<p class="hint full">${floorText(prof, r)}</p>` : ""}
+         ${projectionText(prof, r) ? `<p class="hint full">${projectionText(prof, r)}</p>` : ""}`
       : `<p class="hint full">Enter your weight and height to see your targets.</p>`;
   };
   $$("#personalize input, #personalize select").forEach((el) => el.addEventListener("input", showResult));

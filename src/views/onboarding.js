@@ -1,12 +1,13 @@
 // First-run setup: a full-screen, step-by-step walkthrough that explains the
 // tank, collects the profile, shows the personalized plan, and offers reminders.
 
-import { personalize } from "../model.js";
+import { personalize, ACTIVITY } from "../model.js";
+import { paceOptions, snapPace, paceLabel, paceSub, rateText, projectionText, floorText } from "./plan-text.js";
 import { $, $$, esc, num, success, toast } from "../ui.js";
 import { remindersSupported, applyReminders } from "../native.js";
 import { haptic } from "../motion.js";
 
-const STEPS = ["welcome", "how", "about", "goal", "training", "plan", "reminders", "done"].filter(
+const STEPS = ["welcome", "how", "about", "activity", "goal", "plan", "reminders", "done"].filter(
   (s) => s !== "reminders" || remindersSupported,
 );
 
@@ -28,6 +29,7 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
     sex: "m",
     goal: "maintain",
     lbPerWeek: 1,
+    activity: "desk",
     daysPerWeek: 3,
     setsPerSession: 12,
     cardioMinsPerWeek: 60,
@@ -76,20 +78,11 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
         : `<label class="field"><span>Height (cm)</span><input id="obCm" type="number" inputmode="numeric" min="100" max="240" value="${esc(p.heightCm ?? "")}" placeholder="e.g. 178"></label>`}
       <div class="ob-label">Sex</div>
       <div class="choices two">${choice("sex", "m", "Male", "", p.sex)}${choice("sex", "f", "Female", "", p.sex)}</div>`,
-    goal: () => `
-      <h2>What's your goal?</h2>
-      <div class="choices">
-        ${choice("goal", "cut", "Lose fat", "A steady calorie deficit with high protein", p.goal)}
-        ${choice("goal", "maintain", "Maintain", "Keep your weight and fuel your training", p.goal)}
-        ${choice("goal", "gain", "Build muscle", "A small surplus to support growth", p.goal)}
-      </div>
-      ${p.goal === "maintain" ? "" : `
-        <div class="ob-label">How fast? <span class="ob-rate">${p.lbPerWeek} lb / week</span></div>
-        <input id="obRate" class="ob-slider" type="range" min="0.25" max="${p.goal === "gain" ? 1 : 2}" step="0.25" value="${Math.min(p.lbPerWeek, p.goal === "gain" ? 1 : 2)}">
-        <p class="ob-sub">${p.goal === "cut" ? "0.5 to 1 lb a week is sustainable for most people." : "0.25 to 0.5 lb a week keeps fat gain low."}</p>`}`,
-    training: () => `
-      <h2>Your training</h2>
-      <p class="ob-sub">A typical week. You can change this anytime.</p>
+    activity: () => `
+      <h2>Your activity</h2>
+      <p class="ob-sub">Outside of workouts, how much do you move on a typical day?</p>
+      <div class="choices">${Object.entries(ACTIVITY).map(([k, a]) => choice("activity", k, a.label, a.sub, p.activity)).join("")}</div>
+      <div class="ob-label">Your training in a typical week</div>
       <div class="row2">
         <label class="field"><span>Training days / week</span><input id="obDays" type="number" inputmode="numeric" min="0" max="7" value="${esc(p.daysPerWeek)}"></label>
         <label class="field"><span>Hard sets / session</span><input id="obSets" type="number" inputmode="numeric" min="0" value="${esc(p.setsPerSession)}"></label>
@@ -100,6 +93,26 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
           .map(([v, t]) => `<option value="${v}"${+v === +p.cardioIntensity ? " selected" : ""}>${t}</option>`).join("")}</select></label>
       </div>
       <label class="check"><input type="checkbox" id="obLowCarb" ${p.lowCarb ? "checked" : ""}> I prefer lower carb</label>`,
+    goal: () => {
+      snapPace(p);
+      const unit = p.weightUnits;
+      return `
+      <h2>Where do you want to be?</h2>
+      <div class="choices">
+        ${choice("goal", "cut", "Lose fat", "A steady calorie deficit with high protein", p.goal)}
+        ${choice("goal", "maintain", "Maintain", "Keep your weight and fuel your training", p.goal)}
+        ${choice("goal", "gain", "Build muscle", "A small surplus to support growth", p.goal)}
+      </div>
+      ${p.goal === "maintain" ? "" : `
+        <div class="row2">
+          <div class="field"><span>Current weight</span><div class="ob-now">${p.weight ? `${esc(p.weight)} ${unit}` : "–"}</div></div>
+          <label class="field"><span>Goal weight (${unit})</span><input id="obGoalWeight" type="number" inputmode="decimal" min="30" value="${esc(p.goalWeight ?? "")}" placeholder="${unit === "lb" ? "e.g. 175" : "e.g. 78"}"></label>
+        </div>
+        <div class="ob-label">Pace</div>
+        <div class="choices">${paceOptions(p).map((lb, i) => choice("lbPerWeek", lb, `${paceLabel(p, i)} · ${rateText(lb, p)} / week`, paceSub(p, lb), p.lbPerWeek)).join("")}</div>
+        <p class="ob-proj" id="obProj">${projectionText(p, personalize(p))}</p>
+        <p class="ob-sub">${p.goal === "cut" ? "0.5 to 1% of your body weight a week is sustainable for most people." : "0.25 to 0.5 lb a week keeps fat gain low."}</p>`}`;
+    },
     plan: () => {
       const r = personalize(p);
       if (!r) return `<h2>Your plan</h2><p class="ob-lead">Add your weight and height on the "About you" step to get personal targets, or continue with the standard defaults.</p>`;
@@ -115,7 +128,8 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
           </div>
           <div class="ob-tank"><span class="label">Your glycogen tank</span><strong>${r.glycoCap} g</strong></div>
         </div>
-        ${r.calorieFloorApplied ? `<p class="ob-sub">We don't go below ${p.sex === "f" ? "1,200" : "1,500"} calories a day without professional guidance, so your progress will be a little slower.</p>` : ""}
+        ${projectionText(p, r) ? `<p class="ob-proj">${projectionText(p, r)}</p>` : ""}
+        ${r.calorieFloorApplied ? `<p class="ob-sub">${floorText(p, r)}</p>` : ""}
         <p class="ob-fine">Estimates based on the Mifflin-St Jeor equation and your training. GlycoTank gives general fitness guidance, not medical advice. Check with a doctor or dietitian before big changes, especially if you have a health condition.</p>`;
     },
     reminders: () => `
@@ -134,7 +148,7 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
   };
 
   const nextLabel = { welcome: "Get started", plan: "Use this plan", reminders: "Turn on reminders", done: "Start tracking" };
-  const canSkip = { about: "Skip", goal: "Skip", training: "Skip", reminders: "Not now" };
+  const canSkip = { about: "Skip", activity: "Skip", goal: "Skip", reminders: "Not now" };
 
   function readInputs() {
     const v = (id) => $("#" + id, root);
@@ -144,7 +158,7 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
       if (v("obFt")) Object.assign(p, { heightFt: num(v("obFt")), heightIn: num(v("obIn")) });
       if (v("obCm")) p.heightCm = num(v("obCm"));
     }
-    if (v("obRate")) p.lbPerWeek = +v("obRate").value;
+    if (v("obGoalWeight")) p.goalWeight = num(v("obGoalWeight"));
     if (v("obDays")) {
       Object.assign(p, { daysPerWeek: num(v("obDays")), setsPerSession: num(v("obSets")), cardioMinsPerWeek: num(v("obCardio")), cardioIntensity: +v("obInt").value, lowCarb: v("obLowCarb").checked });
     }
@@ -181,11 +195,15 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
         const { choice: key, value } = b.dataset;
         haptic.tap();
         if (key === "units") Object.assign(p, { weightUnits: value, heightUnits: value === "kg" ? "cm" : "ftin" });
+        else if (key === "lbPerWeek") p.lbPerWeek = +value;
         else p[key] = value;
         render();
       }),
     );
-    $("#obRate", root)?.addEventListener("input", (e) => ($(".ob-rate", root).textContent = `${e.target.value} lb / week`));
+    $("#obGoalWeight", root)?.addEventListener("input", () => {
+      readInputs();
+      $("#obProj", root).innerHTML = projectionText(p, personalize(p));
+    });
     const next = $('[data-ob="next"]', root);
     if (name === "about") {
       const valid = () => {
