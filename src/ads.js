@@ -1,16 +1,15 @@
 // Banner ad across the top of the app (Android and iOS only; the web build
-// shows no ads). Android uses GlycoTank's real AdMob banner. iOS still uses
-// Google's test unit (a "Test Ad" banner that never pays) until the iOS app is
-// added in AdMob: then put its app ID in Info.plist and its banner unit below,
-// and set ios to false in TESTING. Emulators always get test ads.
+// shows no ads). Both platforms use GlycoTank's real AdMob banner units; the
+// app IDs are in android strings.xml (admob_app_id) and ios Info.plist
+// (GADApplicationIdentifier). Emulators always get test ads.
 import { Capacitor } from "@capacitor/core";
 import { AdMob, BannerAdPosition, BannerAdSize, BannerAdPluginEvents } from "@capacitor-community/admob";
 
 const BANNER_ID = {
   android: "ca-app-pub-1749311923941430/7720753433", // "Top banner"
-  ios: "ca-app-pub-3940256099942544/2435281174", // Google's test banner
+  ios: "ca-app-pub-1749311923941430/6901992178", // "Top banner iOS"
 };
-const IS_TEST = { android: false, ios: true };
+const IS_TEST = { android: false, ios: false };
 
 const platform = Capacitor.getPlatform();
 const TESTING = IS_TEST[platform] ?? true;
