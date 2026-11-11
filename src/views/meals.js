@@ -47,9 +47,9 @@ export function renderMeals(root, app) {
         </div>
         <div class="macros">
           <div><div class="label">Calories <span>${round(totals.kcal)} / ${s.kcalTarget}</span></div>${progress(totals.kcal, s.kcalTarget)}</div>
-          <div><div class="label">Protein <span>${round(totals.protein)} / ${s.proteinTarget} g</span></div>${progress(totals.protein, s.proteinTarget, "good")}</div>
-          <div><div class="label">Carbs <span>${round(totals.carbs)} / ${s.carbGuide} g</span></div>${progress(totals.carbs, s.carbGuide)}</div>
-          <div><div class="label">Fiber <span>${round(totals.fiber)} / ${s.fiberTarget} g</span></div>${progress(totals.fiber, s.fiberTarget)}</div>
+          <div><div class="label">Protein <span>${round(totals.protein)} / ${s.proteinTarget} g</span></div>${progress(totals.protein, s.proteinTarget, "m-protein")}</div>
+          <div><div class="label">Carbs <span>${round(totals.carbs)} / ${s.carbGuide} g</span></div>${progress(totals.carbs, s.carbGuide, "m-carbs")}</div>
+          <div><div class="label">Fiber <span>${round(totals.fiber)} / ${s.fiberTarget} g</span></div>${progress(totals.fiber, s.fiberTarget, "m-fiber")}</div>
         </div>
       </div>
     </section>

@@ -9,6 +9,11 @@
   --accent-ink: #07130d;
   --warn: #ffc857;
   --danger: #ff6b6b;
+  /* One color per macro, used everywhere a macro is shown */
+  --carbs: #ffb547;
+  --protein: #5cb8ff;
+  --fat: #ff8f7e;
+  --fiber: #b99cff;
   --radius: 16px;
   --tabbar: 64px;
   /* Standard safe-area insets, or the values Capacitor injects on Android WebViews that lack them. */
@@ -209,6 +214,19 @@ input[type="checkbox"] { width: 20px; min-height: 0; height: 20px; accent-color:
 .entry-main { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
 .entry-kcal { color: var(--muted); font-size: 14px; white-space: nowrap; }
 .entry-sub { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+.m-carbs { --m: var(--carbs); }
+.m-protein { --m: var(--protein); }
+.m-fat { --m: var(--fat); }
+.m-fiber { --m: var(--fiber); }
+.bar.m-carbs > div, .bar.m-protein > div, .bar.m-fiber > div { background: var(--m); }
+.macro-split { display: flex; gap: 2px; height: 6px; margin: 8px 0 8px; border-radius: 99px; overflow: hidden; }
+.macro-split > span { background: var(--m); min-width: 3px; }
+.macro-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.macro {
+  display: inline-flex; align-items: baseline; gap: 4px; padding: 3px 9px; border-radius: 99px;
+  font-size: 13px; color: var(--muted); background: color-mix(in srgb, var(--m) 12%, transparent);
+}
+.macro b { color: var(--m); font-weight: 700; }
 .tag { display: inline-block; font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 2px 8px; margin-left: 6px; white-space: nowrap; }
 .tag.ok { color: var(--accent); border-color: #2c4a3c; }
 .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

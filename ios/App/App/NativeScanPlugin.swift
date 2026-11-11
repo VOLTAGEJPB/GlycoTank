@@ -45,6 +45,7 @@ public class NativeScanPlugin: CAPPlugin, CAPBridgedPlugin {
         call.reject("GlycoTank needs camera access to scan. Turn it on in Settings → GlycoTank → Camera.", "PERMISSION")
     }
 
+    @MainActor
     private func presentScanner(_ call: CAPPluginCall) {
         guard DataScannerViewController.isAvailable, let presenter = bridge?.viewController else {
             call.reject("The camera isn't available right now.", "UNAVAILABLE")
