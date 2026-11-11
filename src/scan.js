@@ -1,11 +1,16 @@
 // Scan-to-fill for meals: barcode lookup (Open Food Facts) and on-device
 // reading of Nutrition Facts labels (ML Kit text recognition).
 
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { BarcodeScanner, BarcodeFormat, GoogleBarcodeScannerModuleInstallState as InstallState } from "@capacitor-mlkit/barcode-scanning";
 import { TextRecognition } from "@capacitor-mlkit/text-recognition";
 import { Camera } from "@capacitor/camera";
 import { fromOpenFoodFacts, parseNutritionLabel } from "./model.js";
+
+// On iPhone, scanning uses Apple's VisionKit and Vision through a small plugin in
+// the app itself (ios/App/App/NativeScanPlugin.swift); ML Kit is Android-only here.
+const NativeScan = registerPlugin("NativeScan");
+const ios = Capacitor.getPlatform() === "ios";
 
 // Demo screenshots can add &native to show the phone's scan buttons on the web.
 const demoNative = (() => {
@@ -51,6 +56,15 @@ async function ensureAndroidScanner(onWaiting) {
 // the user closed it. On Android this uses Google's scanner, which needs no
 // camera permission but may download a small module the first time.
 export async function scanBarcode(onWaiting) {
+  if (ios) {
+    try {
+      return (await NativeScan.scanBarcode()).value || null;
+    } catch (e) {
+      if (e?.code === "UNAVAILABLE") throw new ScanError(`${e.message} You can type the barcode number instead.`, { unavailable: true });
+      if (e?.code === "PERMISSION") throw new ScanError(e.message, { unavailable: true });
+      throw e;
+    }
+  }
   if (Capacitor.getPlatform() === "android") await ensureAndroidScanner(onWaiting);
   try {
     const { barcodes } = await BarcodeScanner.scan({
@@ -103,7 +117,7 @@ export async function scanLabel(fromGallery = false) {
   if (!uri) return null;
   // The camera plugin returns a plain file path on Android; ML Kit needs a URI.
   const path = uri.startsWith("/") ? `file://${uri}` : uri;
-  const { text } = await TextRecognition.processImage({ path });
+  const { text } = ios ? await NativeScan.readText({ path: uri }) : await TextRecognition.processImage({ path });
   const label = parseNutritionLabel(text || "");
   const found = ["kcal", "carbs", "protein", "fat", "fiber"].filter((k) => label[k] != null).length;
   if (found < 2) throw new ScanError("Couldn't read the label. Try again with the Nutrition Facts panel flat, well lit and filling the frame.");
