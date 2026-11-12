@@ -66,7 +66,7 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
       </ul>`,
     about: () => `
       <h2>About you</h2>
-      <p class="ob-sub">Used to estimate your energy needs. Saved privately to your account and never shared.</p>
+      <p class="ob-sub">Used to estimate your energy needs. Saved to your account so it syncs across your devices.</p>
       <div class="ob-label">Units</div>
       <div class="choices two">${choice("units", "lb", "Pounds & feet", "", p.weightUnits)}${choice("units", "kg", "Kilograms & cm", "", p.weightUnits)}</div>
       <div class="row2">

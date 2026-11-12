@@ -120,7 +120,7 @@ export function renderSettings(root, app, show = group) {
 
     <section class="card" data-group="data">
       <h2>Your data</h2>
-      <p class="hint">${auth.configured() ? "Your data is saved on this device and backed up privately to your GlycoTank account. It's encrypted, never sold and never used for ads." : "Your data lives only on this device, so export a backup now and then."} Label scans are read on your phone; barcode lookups send only the barcode number to Open Food Facts.</p>
+      <p class="hint">${auth.configured() ? "Your data is saved on this device and backed up privately to your GlycoTank account. It's encrypted in transit and at rest." : "Your data lives only on this device, so export a backup now and then."} Label scans are read on your phone; barcode lookups send only the barcode number to Open Food Facts.</p>
       <div class="actions">
         <button class="btn" id="dJson">Back up (JSON)</button>
         <button class="btn" id="dCsv">Export spreadsheet (CSV)</button>
