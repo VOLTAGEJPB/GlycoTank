@@ -1,6 +1,7 @@
 import { localDate, dayTotals, streak, weekLog, mealSlot, MEAL_SLOTS } from "../model.js";
 import { round, progress } from "../ui.js";
 import { mealLine } from "./entries.js";
+import { drinksCard, hookDrinks } from "./drinks.js";
 
 const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -56,9 +57,12 @@ export function renderMeals(root, app) {
 
     ${MEAL_SLOTS.map(slotCard).join("")}
 
+    ${drinksCard(app)}
+
     ${state.meta.personalized ? "" : `<button class="banner" data-go="more" data-section="goals">Using default targets. <strong>Personalize them →</strong></button>`}
   `;
 
+  hookDrinks(app);
   root.querySelectorAll("[data-slot]").forEach((b) =>
     b.addEventListener("click", () => {
       app.editing = null;

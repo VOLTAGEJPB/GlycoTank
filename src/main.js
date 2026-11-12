@@ -55,6 +55,8 @@ const app = {
     $("#tabs").style.setProperty("--tab", tab);
     $("#tabInk").style.opacity = tab < 0 ? 0 : 1;
     $("#title").textContent = VIEWS[view].title;
+    // Pages inside More get a back button in the sticky top bar, so it stays in reach while scrolling.
+    $("#topBack").hidden = !(view === "more" && app.moreSection);
     const root = $("#view");
     VIEWS[view].render(root, app);
     if (!app.launching) enterView(root);

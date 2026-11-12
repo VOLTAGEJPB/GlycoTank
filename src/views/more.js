@@ -52,7 +52,7 @@ export function renderMore(root, app) {
     return;
   }
   $("#title").textContent = TITLES[section];
-  root.innerHTML = `<button class="back-link" data-go="more" data-section="">‹ More</button><div id="moreBody"></div>`;
+  root.innerHTML = `<div id="moreBody"></div>`;
   const body = $("#moreBody");
   if (section === "history") return renderHistory(body, app);
   if (section === "body") return renderBody(body, app);

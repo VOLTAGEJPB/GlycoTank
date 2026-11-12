@@ -14,6 +14,7 @@
   --protein: #5cb8ff;
   --fat: #ff8f7e;
   --fiber: #b99cff;
+  --water: #4fb6ff;
   --radius: 16px;
   --tabbar: 64px;
   /* Standard safe-area insets, or the values Capacitor injects on Android WebViews that lack them. */
@@ -45,7 +46,14 @@ h2 { font-size: 18px; margin-bottom: 10px; }
   border-bottom: 1px solid var(--line);
 }
 .topbar { display: flex; align-items: center; justify-content: space-between; }
-.topbar h1 { font-size: 22px; font-weight: 800; }
+.topbar h1 { font-size: 22px; font-weight: 800; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar { gap: 10px; }
+.top-back {
+  flex: none; display: flex; align-items: center; min-height: 34px; padding: 4px 12px 4px 8px; margin: -4px 0 -4px -6px;
+  background: var(--field); border: 1px solid var(--line); border-radius: 99px;
+  color: var(--accent); font-weight: 700; font-size: 15px; cursor: pointer;
+}
+.top-back:active { transform: scale(0.96); }
 .icon-btn { width: 40px; height: 40px; margin: -8px -8px -8px 0; display: grid; place-items: center; background: none; border: 0; border-radius: 50%; color: var(--muted); cursor: pointer; }
 .icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
 .icon-btn[aria-current="page"] { color: var(--accent); }
@@ -168,6 +176,13 @@ input[type="checkbox"] { width: 20px; min-height: 0; height: 20px; accent-color:
 .row3 { grid-template-columns: repeat(3, 1fr); }
 .row5 { grid-template-columns: repeat(5, 1fr); }
 @media (max-width: 520px) { .row5 { grid-template-columns: repeat(3, 1fr); } }
+/* iOS gives date inputs a wide built-in minimum, which pushed them over the field beside them. */
+input[type="date"] {
+  -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%;
+  font-size: 14px; padding: 10px 8px; text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+input[type="date"]::-webkit-calendar-picker-indicator { margin: 0; padding: 0; }
 @media (max-width: 360px) { .row3 { grid-template-columns: 1fr 1fr; } }
 
 .btn {
@@ -508,6 +523,19 @@ body.onboarding { overflow: hidden; }
 }
 .slot .card-head + .add-food { border-top: 0; padding-top: 2px; }
 .chip.picked { border-color: var(--accent); color: var(--accent); }
+
+/* Water & drinks */
+.bar.m-water > div { background: var(--water); }
+.link-btn { background: none; border: 0; padding: 4px 0; color: var(--water); font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+.drink-quick { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+.drink-btn { display: flex; align-items: center; justify-content: center; gap: 4px; padding-left: 6px; padding-right: 6px; white-space: nowrap; font-size: 15px; }
+.drink-btn svg { width: 16px; height: 16px; fill: var(--water); flex: none; }
+.drink-form, .drink-goal { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; margin-top: 12px; }
+.drink-goal { grid-template-columns: 1fr auto; }
+.drink-form .field, .drink-goal .field { margin: 0; }
+.drink-form .btn, .drink-goal .btn { min-height: 44px; }
+.drink-list { margin-top: 8px; }
+.drink-del { margin-left: 10px; background: none; border: 0; color: var(--muted); font-size: 14px; padding: 2px 4px; cursor: pointer; }
 
 /* More tab */
 .more-label { margin: 6px 4px 6px; text-transform: uppercase; letter-spacing: 0.04em; font-size: 12px; }
