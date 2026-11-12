@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const CONTACT = "joel.perez5588@gmail.com";
-const UPDATED = "October 17, 2026";
+const UPDATED = "November 12, 2026";
 
 const css = `
 :root{--bg:#0f1115;--card:#161a23;--text:#e8ebf1;--muted:#98a2b3;--line:#262c3d;--accent:#57cc99}
@@ -82,10 +82,10 @@ page(
 <div class="card"><h3>Personal targets</h3><p>Calories, protein, carbs, fat and fiber set from your body, goal and training.</p></div>
 <div class="card"><h3>Scan to log</h3><p>Scan a barcode or snap the Nutrition Facts label and your meal fills itself in.</p></div>
 <div class="card"><h3>Fast logging</h3><p>Favorites, full workout sessions, quick macro entry, a rest timer and plate math.</p></div>
-<div class="card"><h3>Private by design</h3><p>Your data is never sold or shared with advertisers. It's backed up privately to your account so it follows you to a new phone.</p></div>
+<div class="card"><h3>Backed up</h3><p>Your log is backed up to your account so it follows you to a new phone. Works offline and syncs when you're back online.</p></div>
 </div>
-<h2>Coming soon</h2>
-<p>GlycoTank is coming to the App Store and Google Play. Questions? See <a href="/support/">support</a>.</p>`,
+<h2>Get GlycoTank</h2>
+<p><a href="https://apps.apple.com/app/id6833557734"><strong>Download on the App Store</strong></a> (free, iPhone). Android is coming to Google Play. Questions? See <a href="/support/">support</a>.</p>`,
 );
 
 page(
@@ -94,22 +94,22 @@ page(
   "GlycoTank's privacy policy: what we store, why, and how to delete it.",
   `<h1>Privacy Policy</h1>
 <p class="meta">Last updated: ${UPDATED}</p>
-<p>GlycoTank is a fitness and nutrition tracking app for iPhone and Android made by Joel Perez ("we"). This policy explains what information the app stores, why, and how you can delete it. In short: <strong>we store your data only to back it up and sync it between your devices. We never sell it, share it with advertisers or use it for advertising.</strong> The Android app shows a banner ad, described under <a href="#ads">Advertising</a>.</p>
+<p>GlycoTank is a fitness and nutrition tracking app for iPhone and Android made by Joel Perez ("we"). This policy explains what information the app stores, why, and how you can delete it. The app shows a banner ad, described under <a href="#ads">Advertising</a>.</p>
 
 <h2>Your account</h2>
-<p>To use GlycoTank you create an account with your email address and a password. We use your email address to sign you in, to send you a verification code when you sign up and to help you reset your password. We don't send marketing email. Your password is handled by our sign-in provider and is never visible to us.</p>
+<p>To use GlycoTank you create an account with your email address and a password. We use your email address to sign you in, to send you a verification code when you sign up and to help you reset your password. We don't send marketing email. Your password is handled by our sign-in provider and is never visible to us. You can also sign in with Apple or Google instead; we then receive your email address from them (with Sign in with Apple you can choose to hide your email, and we receive a private relay address instead).</p>
 
 <h2>Information we store</h2>
 <p>Everything you enter in GlycoTank is saved on your device and backed up to your account so it's available when you sign in on another phone. This includes meals, workouts, morning check-ins (sleep, resting heart rate, mood), your profile details (such as weight, height, age, sex and goal) and your settings.</p>
-<p>We use this information only to provide the app to you: to keep your devices in sync and to restore your data when you sign in. We don't use it for advertising, we don't sell it, and we don't share it with anyone, except the service providers that run the app for us as described below or where required by law.</p>
+<p>We use this information to provide the app to you: to keep your devices in sync and to restore your data when you sign in. We share it with the service providers that run the app for us, as described below, and where required by law. If we change how we use or share your information, we'll update this policy and, where the law requires it, ask for your consent first.</p>
 
 <h2>Where it's stored and how it's protected</h2>
 <p>Your account and data are stored with Amazon Web Services (AWS) in the United States. Data is encrypted in transit (HTTPS) and at rest. Only you can access your data through the app, after signing in. We keep automatic backups for a limited time to protect against data loss.</p>
 
 <h2 id="ads">Advertising</h2>
 <p>GlycoTank shows a banner ad at the top of the screen, served by <a href="https://admob.google.com">Google AdMob</a>. To show and measure ads, the Google Mobile Ads SDK in the app collects your device's advertising ID, your approximate location derived from your IP address, and basic device and app-usage information (such as which ads were shown or tapped), and sends it to Google. Google uses this under <a href="https://policies.google.com/technologies/partner-sites">its own policies</a>.</p>
-<p>None of the information you enter in GlycoTank, such as meals, workouts, check-ins, weight or your email address, is ever shared with Google or any ad network.</p>
-<p>Where the law requires it (for example in the European Economic Area, the UK and some US states), the app asks for your consent before personalized ads are shown, and you can change your choice later. You can also reset or delete your advertising ID, or opt out of personalized ads, in your phone's settings (on Android: <em>Settings → Privacy → Ads</em>).</p>
+<p>The ad SDK does not receive the information you enter in GlycoTank, such as meals, workouts, check-ins, weight or your email address.</p>
+<p>Where the law requires it (for example in the European Economic Area, the UK and some US states), the app asks for your consent before personalized ads are shown, and you can change your choice later. You can also reset or delete your advertising ID, or opt out of personalized ads, in your phone's settings (on Android: <em>Settings → Privacy → Ads</em>; on iPhone: <em>Settings → Privacy &amp; Security → Apple Advertising</em>). On iPhone, GlycoTank does not ask to track you across other companies' apps and websites, so the advertising ID is not available to the app and ads are not personalized based on your activity elsewhere.</p>
 
 <h2>What we don't collect</h2>
 <p>Apart from the ads described above, GlycoTank has no analytics, no crash reporting and no third-party tracking tools. We don't collect your location (other than the approximate location Google infers for ads), contacts or photos.</p>

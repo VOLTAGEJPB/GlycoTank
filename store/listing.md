@@ -6,7 +6,7 @@ Character limits are noted in brackets; every field below fits.
 
 - **App name** (Apple 30 / Google 30): `GlycoTank: Carb & Fuel Tracker` (30)
 - **Category:** Health & Fitness
-- **Price:** Free, no in-app purchases. Contains ads on Android (AdMob banner); iOS has none yet
+- **Price:** Free, no in-app purchases. Contains ads (AdMob banner) on Android and iOS
 - **Support URL:** https://glycotank.voltagejpb.com/support/
 - **Marketing URL:** https://glycotank.voltagejpb.com
 - **Privacy policy URL:** https://glycotank.voltagejpb.com/privacy/
@@ -16,22 +16,30 @@ Character limits are noted in brackets; every field below fits.
 
 ## Apple App Store
 
-- **Subtitle** (30): `Fuel, macros & readiness` (24)
+- **App name:** `GlycoTank` (the user chose the short name for Apple, 2026-11-11)
+- **Subtitle** (30): `Carb, Macro & Fuel Tracker` (26). It carries the search words the short name lacks
+- **Secondary category:** Food & Drink
+- **Copyright:** `2026 Joel Perez`
 - **Promotional text** (170, can be changed anytime without review):
-  `Know when you're fueled to train. GlycoTank estimates your glycogen "fuel tank" from your meals and workouts, and plans tomorrow's carbs. Your data is never sold.` (162)
+  `Know when you're fueled to train. GlycoTank estimates your glycogen "fuel tank" from your meals and workouts, and plans tomorrow's carbs. Scan a barcode to log fast.` (165)
 - **Keywords** (100, comma-separated, no spaces needed):
   `glycogen,carb cycling,macro tracker,meal log,workout log,protein,readiness,nutrition,fitness,diet` (97)
 
 ## Google Play
 
 - **Short description** (80):
-  `Track meals & workouts and see your glycogen fuel tank. Private, never sold.` (76)
+  `Track meals & workouts and see your glycogen fuel tank. Scan to log fast.` (73)
 
 ## Full description (both stores, 4000)
 
 Know when you're fueled to train.
 
 GlycoTank tracks your meals and workouts and estimates your glycogen: the carbohydrate fuel stored in your muscles and liver. Watch your "fuel tank" rise with meals and drain with training, plan tomorrow's carbs, and check your readiness each morning.
+
+MEALS AND WATER
+• Breakfast, lunch, dinner and snacks with today's calories, protein, carbs and fiber at a glance
+• Log water and other drinks in one tap and watch your daily goal fill
+• A weekly strip and streak keep you consistent
 
 FUEL TANK
 • See an estimate of your glycogen level, updated with every meal and workout
@@ -63,8 +71,7 @@ FAST LOGGING
 • Log a whole training session at once
 • Rest timer and plate math built in
 
-PRIVATE AND BACKED UP
-• Your data is never sold or shared with advertisers
+BACKED UP
 • Your log is backed up privately to your account and follows you to a new phone
 • Works offline and syncs when you're back online
 • Export to a spreadsheet anytime, or delete your account and data in the app
@@ -99,16 +106,22 @@ First release of GlycoTank.
 
 **Camera:** used only when the user taps Scan barcode or Scan label. Label photos are processed on-device and not stored or uploaded.
 
-**Apple App Privacy ("nutrition label"):** Data **is** collected. For each type below: **Linked to the user: Yes. Used for tracking: No. Purpose: App Functionality** only.
-- Contact Info → Email Address
-- Health & Fitness → Health (resting heart rate, sleep, weight) and Fitness (workouts, meals)
-- Identifiers → User ID (account ID)
-Not collected: location, contacts, photos, usage data, diagnostics, purchases.
+**Apple App Privacy ("nutrition label"):** Data **is** collected. Tracking: **No** (the app never shows the App Tracking Transparency prompt, so AdMob gets no IDFA).
+- Our own data, **Linked to the user: Yes. Used for tracking: No. Purpose: App Functionality**:
+  - Contact Info → Email Address
+  - Health & Fitness → Health (resting heart rate, sleep, weight) and Fitness (workouts, meals)
+  - Identifiers → User ID (account ID)
+- Google Mobile Ads SDK, **Linked: No. Tracking: No. Purposes: Third-Party Advertising, Analytics**:
+  - Location → Coarse Location (from IP)
+  - Identifiers → Device ID (IDFV)
+  - Usage Data → Product Interaction, Advertising Data
+  - Diagnostics → Crash Data, Performance Data, Other Diagnostic Data
+Not collected: precise location, contacts, photos, purchases, browsing history.
 
 **Apple account rules:** account deletion is in the app (guideline 5.1.1(v)) ✔. Sign in with Apple must be offered if Google sign-in is offered (guideline 4.8). Requiring an account for an app that could work on one device is a rejection risk under 5.1.1(v); if review objects, switch `ACCOUNT_REQUIRED` in src/main.js to false.
 
-**Google Play health apps declaration:** a fitness/nutrition tracker; not a medical device. Health and fitness data is stored in the user's account only to back it up and sync it between their devices; it is never sold, shared or used for advertising.
+**Google Play health apps declaration:** a fitness/nutrition tracker; not a medical device. Health and fitness data is stored in the user's account to back it up and sync it between their devices.
 
-**Ads:** none. **Target audience:** 18+ (fitness and nutrition app for adults; not designed for children).
+**Ads:** yes, an AdMob banner at the top (both platforms). **Target audience:** 18+ (fitness and nutrition app for adults; not designed for children).
 
 **Notification permission (Android):** used only for the optional daily reminders the user sets. **Alarms & reminders (exact alarms):** used so those user-set daily reminders arrive at the chosen time.
