@@ -5,7 +5,7 @@ import { personalize, ACTIVITY } from "../model.js";
 import { paceOptions, snapPace, paceLabel, paceSub, rateText, projectionText, floorText } from "./plan-text.js";
 import { $, $$, esc, num, success, toast } from "../ui.js";
 import { remindersSupported, applyReminders } from "../native.js";
-import { haptic } from "../motion.js";
+import { haptic, countUp, reducedMotion } from "../motion.js";
 
 const STEPS = ["welcome", "how", "about", "activity", "goal", "plan", "reminders", "done"].filter(
   (s) => s !== "reminders" || remindersSupported,
@@ -13,7 +13,8 @@ const STEPS = ["welcome", "how", "about", "activity", "goal", "plan", "reminders
 
 const TANK_ICON = `<svg viewBox="0 0 120 160" aria-hidden="true"><defs><clipPath id="obClip"><rect x="14" y="18" width="92" height="132" rx="24"/></clipPath></defs>
   <rect x="44" y="5" width="32" height="13" rx="5" fill="#3a4357"/><rect x="14" y="18" width="92" height="132" rx="24" fill="#20283a"/>
-  <g clip-path="url(#obClip)"><path class="ob-wave" d="M-120 70 q30 -9 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 V220 H-120 Z" fill="#57cc99"/></g>
+  <g clip-path="url(#obClip)"><g class="ob-fuel"><path class="ob-wave" d="M-120 70 q30 -9 60 0 t60 0 t60 0 t60 0 t60 0 t60 0 V220 H-120 Z" fill="#57cc99"/></g>
+  <circle class="ob-bubble" cx="40" cy="140" r="4"/><circle class="ob-bubble" cx="66" cy="146" r="3"/><circle class="ob-bubble" cx="86" cy="138" r="5"/></g>
   <rect x="14" y="18" width="92" height="132" rx="24" fill="none" stroke="#e8ebf1" stroke-width="7"/></svg>`;
 
 const choice = (name, value, label, sub, current) =>
@@ -121,12 +122,12 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
         <div class="ob-plan">
           <div class="ob-kcal"><span class="label">Calories</span><strong data-count="${r.kcalTarget}">${r.kcalTarget}</strong></div>
           <div class="ob-macros">
-            <div><span class="label">Protein</span><strong>${r.proteinTarget} g</strong></div>
-            <div><span class="label">Carbs</span><strong>${r.carbGuide} g</strong></div>
-            <div><span class="label">Fat</span><strong>${r.fatTarget} g</strong></div>
-            <div><span class="label">Fiber</span><strong>${r.fiberTarget} g</strong></div>
+            <div class="m-protein"><span class="label">Protein</span><strong data-count="${r.proteinTarget}" data-suffix=" g">${r.proteinTarget} g</strong></div>
+            <div class="m-carbs"><span class="label">Carbs</span><strong data-count="${r.carbGuide}" data-suffix=" g">${r.carbGuide} g</strong></div>
+            <div class="m-fat"><span class="label">Fat</span><strong data-count="${r.fatTarget}" data-suffix=" g">${r.fatTarget} g</strong></div>
+            <div class="m-fiber"><span class="label">Fiber</span><strong data-count="${r.fiberTarget}" data-suffix=" g">${r.fiberTarget} g</strong></div>
           </div>
-          <div class="ob-tank"><span class="label">Your glycogen tank</span><strong>${r.glycoCap} g</strong></div>
+          <div class="ob-tank"><span class="label">Your glycogen tank</span><strong data-count="${r.glycoCap}" data-suffix=" g">${r.glycoCap} g</strong></div>
         </div>
         ${projectionText(p, r) ? `<p class="ob-proj">${projectionText(p, r)}</p>` : ""}
         ${r.calorieFloorApplied ? `<p class="ob-sub">${floorText(p, r)}</p>` : ""}
@@ -149,6 +150,25 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
 
   const nextLabel = { welcome: "Get started", plan: "Use this plan", reminders: "Turn on reminders", done: "Start tracking" };
   const canSkip = { about: "Skip", activity: "Skip", goal: "Skip", reminders: "Not now" };
+
+  let picked = null;
+
+  // A short burst of colored confetti from the top of the screen.
+  function confetti() {
+    if (reducedMotion()) return;
+    const colors = ["#57cc99", "#ffb547", "#5cb8ff", "#ff8f7e", "#b99cff", "#e8ebf1"];
+    const burst = document.createElement("div");
+    burst.className = "ob-confetti";
+    burst.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 46; i++) {
+      const bit = document.createElement("i");
+      bit.style.cssText = `--x:${Math.round((Math.random() - 0.5) * 340)}px;--up:${-Math.round(80 + Math.random() * 140)}px;--r:${Math.round((Math.random() - 0.5) * 900)}deg;--d:${Math.round(Math.random() * 180)}ms;--c:${colors[i % colors.length]};--w:${6 + Math.round(Math.random() * 5)}px`;
+      burst.appendChild(bit);
+    }
+    root.appendChild(burst);
+    haptic.success();
+    setTimeout(() => burst.remove(), 2400);
+  }
 
   function readInputs() {
     const v = (id) => $("#" + id, root);
@@ -182,11 +202,27 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
         <button class="btn primary" data-ob="next">${nextLabel[name] || "Continue"}</button>
       </footer>`;
     wire(name);
+    if (dir) {
+      // Each step's content rises in, one piece after another.
+      const stepBody = $(".ob-body", root);
+      let i = 0;
+      for (const el of stepBody.children) {
+        if (el.classList.contains("choices") || el.classList.contains("ob-points")) for (const c of el.children) c.style.setProperty("--i", Math.min(i++, 10));
+        else el.style.setProperty("--i", Math.min(i++, 10));
+      }
+      stepBody.classList.add("ob-stagger");
+      $$("[data-count]", root).forEach((el) => countUp(el, +el.dataset.count, 1100, (v) => `${Math.round(v).toLocaleString()}${el.dataset.suffix || ""}`));
+      if (name === "done") confetti();
+    }
     root.scrollTop = 0;
     $(".ob-body", root).scrollTop = 0;
   }
 
   function wire(name) {
+    if (picked) {
+      $(`[data-choice="${picked.key}"][data-value="${picked.value}"]`, root)?.classList.add("picked");
+      picked = null;
+    }
     $(".ob-back", root).onclick = () => go(-1);
     $(".ob-close", root)?.addEventListener("click", close);
     $$("[data-choice]", root).forEach((b) =>
@@ -194,6 +230,7 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
         readInputs();
         const { choice: key, value } = b.dataset;
         haptic.tap();
+        picked = { key, value };
         if (key === "units") Object.assign(p, { weightUnits: value, heightUnits: value === "kg" ? "cm" : "ftin" });
         else if (key === "lbPerWeek") p.lbPerWeek = +value;
         else p[key] = value;
@@ -202,7 +239,14 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
     );
     $("#obGoalWeight", root)?.addEventListener("input", () => {
       readInputs();
-      $("#obProj", root).innerHTML = projectionText(p, personalize(p));
+      const proj = $("#obProj", root);
+      const html = projectionText(p, personalize(p));
+      if (proj.innerHTML !== html) {
+        proj.innerHTML = html;
+        proj.classList.toggle("bump", false);
+        void proj.offsetWidth; // restart the pulse
+        proj.classList.add("bump");
+      }
     });
     const next = $('[data-ob="next"]', root);
     if (name === "about") {
@@ -247,7 +291,9 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
   }
 
   function go(delta) {
-    step = Math.max(0, Math.min(STEPS.length - 1, step + delta));
+    const to = Math.max(0, Math.min(STEPS.length - 1, step + delta));
+    if (to !== step) haptic.tap();
+    step = to;
     render(delta > 0 ? "from-right" : "from-left");
   }
 
