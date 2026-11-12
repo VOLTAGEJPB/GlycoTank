@@ -50,6 +50,24 @@ jobs:
           mkdir -p "$RUNNER_TEMP/asc"
           printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc/AuthKey_$ASC_KEY_ID.p8"
 
+      - name: Load the saved development certificate
+        # Without this, every run makes Xcode create a new development
+        # certificate, and Apple's limit of 10 is hit after a few builds.
+        env:
+          DEV_CERT_P12: ${{ secrets.DEV_CERT_P12 }}
+          DEV_CERT_PASSWORD: ${{ secrets.DEV_CERT_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/build.keychain-db"; KCPASS=$(uuidgen)
+          echo "$DEV_CERT_P12" | base64 --decode > "$RUNNER_TEMP/dev.p12"
+          security create-keychain -p "$KCPASS" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KCPASS" "$KC"
+          security import "$RUNNER_TEMP/dev.p12" -P "$DEV_CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KCPASS" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/dev.p12"
+          security find-identity -v -p codesigning "$KC"
+
       - name: Archive
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
