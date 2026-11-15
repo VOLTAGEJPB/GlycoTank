@@ -76,8 +76,9 @@ function renderMeal(root, app) {
         <input id="barcodeInput" inputmode="numeric" placeholder="Barcode number, e.g. 016000275287" aria-label="Barcode number">
         <button class="btn small" id="barcodeGo">Look up</button>
       </div>
-      ${native ? `<p class="hint scan-alt"><a href="#" id="typeBarcode">Type a barcode</a> · <a href="#" id="pickLabel">Use a photo of a label</a>${photoEstimates() ? ` · <a href="#" id="pickMealPhoto">Meal photo from library</a>` : ""}</p>` : ""}
-      <div id="scanResult" class="scan-result" hidden></div>`}
+      ${native ? `<p class="hint scan-alt"><a href="#" id="typeBarcode">Type a barcode</a> · <a href="#" id="pickLabel">Use a photo of a label</a>${photoEstimates() ? ` · <a href="#" id="pickMealPhoto">Meal photo from library</a> · <a href="#" id="scanReceipt">Scan a restaurant receipt</a>` : ""}</p>` : ""}
+      <div id="scanResult" class="scan-result" hidden></div>
+      <div id="receiptPick" class="scan-result receipt-pick" hidden></div>`}
       <div id="mealItems" class="meal-items" hidden></div>
       ${quick.length ? `<div class="label mt">Favorites &amp; recent</div>
       <div class="chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${q.fav ? "★ " : ""}${esc(q.name)}<small>${Math.round(q.kcal || 0)} kcal</small></button>`).join("")}</div>` : ""}
@@ -126,7 +127,7 @@ function renderMeal(root, app) {
     box.innerHTML = items.length ? `
       <div class="label">In this meal</div>
       <ul>${items.map((it, i) => `
-        <li><span class="mi-name"><strong>${esc(it.name)}</strong><small>${esc(it.portion)}${it.source === "photo" ? " · estimated from photo" : ""}</small></span>
+        <li><span class="mi-name"><strong>${esc(it.name)}</strong><small>${esc(it.portion)}${it.source === "photo" ? " · estimated from photo" : it.source === "receipt" ? " · from receipt" : ""}</small></span>
           <span class="mi-kcal">${Math.round(it.kcal)} kcal</span>
           <button class="drink-del" data-item-del="${i}" aria-label="Remove ${esc(it.name)}">✕</button></li>`).join("")}</ul>
       ${photoNote ? `<p class="hint">${esc(photoNote)}</p>` : ""}` : "";
@@ -328,13 +329,17 @@ function renderMeal(root, app) {
   });
   $("#barcodeGo")?.addEventListener("click", (e) => lookup($("#barcodeInput").value, e.currentTarget));
   // ----- Meal photo estimate -----
-  const fromPhoto = async (fromGallery) => {
-    if (!state.settings.photoConsent) {
-      const ok = await confirmDialog("To estimate your meal, the photo is sent to the GlycoTank server and to Claude, an AI from Anthropic. Photos aren't saved. Estimates can be off, so check the numbers before saving.", "Continue", false);
-      if (!ok) return;
+  const photoConsent = async () => {
+    if (state.settings.photoConsent) return true;
+    const ok = await confirmDialog("To estimate your meal, the photo is sent to the GlycoTank server and to Claude, an AI from Anthropic. Photos aren't saved. Estimates can be off, so check the numbers before saving.", "Continue", false);
+    if (ok) {
       state.settings.photoConsent = true;
       app.save();
     }
+    return ok;
+  };
+  const fromPhoto = async (fromGallery) => {
+    if (!(await photoConsent())) return;
     const btn = $("#mealPhoto");
     try {
       const res = await estimateFromPhoto(fromGallery, () => busy(btn, true, "Estimating…"));
@@ -351,6 +356,54 @@ function renderMeal(root, app) {
     }
   };
   $("#mealPhoto")?.addEventListener("click", () => fromPhoto(false));
+
+  // ----- Restaurant receipt: tick what you ate -----
+  const SHARES = [[1, "All"], [0.5, "Half"], [0.25, "A quarter"]];
+  const showReceipt = (res) => {
+    const box = $("#receiptPick");
+    box.hidden = false;
+    box.innerHTML = `
+      <div class="scan-head"><strong>Receipt</strong><span>Tick what you ate. Nutrition is estimated.</span></div>
+      <ul class="receipt-list">${res.items.map((it, i) => `
+        <li><label class="receipt-item"><input type="checkbox" data-r="${i}" checked>
+          <span class="mi-name"><strong>${esc(it.name)}</strong><small>${esc(it.portion)} · ${Math.round(it.kcal)} kcal</small></span></label>
+          <select data-share="${i}" aria-label="How much of ${esc(it.name)} you ate">${SHARES.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select></li>`).join("")}</ul>
+      ${res.note ? `<p class="hint">${esc(res.note)}</p>` : ""}
+      <div class="actions"><button class="btn primary" id="receiptAdd">Add to meal</button><button class="btn ghost" id="receiptCancel">Cancel</button></div>`;
+    $("#receiptAdd").addEventListener("click", () => {
+      let added = 0;
+      res.items.forEach((it, i) => {
+        if (!$(`[data-r="${i}"]`, box).checked) return;
+        const share = +$(`[data-share="${i}"]`, box).value;
+        const scaled = Object.fromEntries(Object.keys(ids).map((k) => [k, Math.round(it[k] * share * 10) / 10]));
+        const label = SHARES.find(([v]) => v === share)[1].toLowerCase();
+        items.push({ ...it, ...scaled, kcal: Math.round(scaled.kcal), short: it.name, portion: share === 1 ? it.portion : `${label} of ${it.portion}`, source: "receipt" });
+        added++;
+      });
+      if (!added) return toast("Tick at least one item");
+      photoNote = "";
+      box.hidden = true;
+      refreshItems();
+      success(`Added ${added} ${added === 1 ? "item" : "items"}`);
+      $("#mealItems").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
+    $("#receiptCancel").addEventListener("click", () => (box.hidden = true));
+    box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
+  $("#scanReceipt")?.addEventListener("click", async (e) => {
+    e.preventDefault();
+    if (!(await photoConsent())) return;
+    const link = e.currentTarget;
+    const label = link.textContent;
+    try {
+      const res = await estimateFromPhoto(false, () => (link.textContent = "Reading receipt…"), "receipt");
+      if (res) showReceipt(res);
+    } catch (err) {
+      report(err);
+    } finally {
+      link.textContent = label;
+    }
+  });
   $("#pickMealPhoto")?.addEventListener("click", (e) => {
     e.preventDefault();
     fromPhoto(true);

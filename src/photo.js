@@ -1,6 +1,6 @@
-// Meal photo -> estimated foods. The photo is shrunk on the phone, then sent to
-// the GlycoTank server, which asks Claude (Anthropic) to estimate each food and
-// its nutrition. Nothing is stored on the server.
+// Meal photo (or restaurant receipt) -> estimated foods. The photo is shrunk on
+// the phone, then sent to the GlycoTank server, which asks Claude (Anthropic) to
+// estimate each food and its nutrition. Nothing is stored on the server.
 
 import { Capacitor } from "@capacitor/core";
 import { Camera } from "@capacitor/camera";
@@ -8,7 +8,9 @@ import { CLOUD } from "./cloud-config.js";
 import { idToken } from "./auth.js";
 import { ScanError } from "./scan.js";
 
-const MAX_SIDE = 1280; // plenty to recognize food; keeps the upload small
+// Plenty to recognize food and keep the upload small; receipts get more pixels
+// so their small print stays readable.
+const MAX_SIDE = { meal: 1280, receipt: 2000 };
 const isCancel = (e) => /cancel/i.test(String(e?.message || e));
 
 export const photoEstimates = () => !!CLOUD.apiUrl;
@@ -40,14 +42,14 @@ async function pickPhoto(fromGallery) {
 }
 
 // Scales the photo down and re-encodes it as JPEG; returns base64 without the data: prefix.
-async function shrink(blob) {
+async function shrink(blob, maxSide) {
   let bmp;
   try {
     bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
   } catch {
     throw new ScanError("Couldn't open that photo. Try another one.");
   }
-  const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+  const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
   const canvas = Object.assign(document.createElement("canvas"), { width: Math.round(bmp.width * scale), height: Math.round(bmp.height * scale) });
   canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
   bmp.close?.();
@@ -55,24 +57,25 @@ async function shrink(blob) {
 }
 
 // Resolves to { items: [{ name, portion, kcal, carbs, protein, fat, fiber }], note },
-// or null if the user didn't pick a photo. `onBusy` is called once a photo is chosen.
-export async function estimateFromPhoto(fromGallery, onBusy) {
+// or null if the user didn't pick a photo. `kind` is "meal" or "receipt";
+// `onBusy` is called once a photo is chosen.
+export async function estimateFromPhoto(fromGallery, onBusy, kind = "meal") {
   const blob = await pickPhoto(fromGallery);
   if (!blob) return null;
   onBusy?.();
-  const image = await shrink(blob);
+  const image = await shrink(blob, MAX_SIDE[kind]);
   let res;
   try {
     res = await fetch(`${CLOUD.apiUrl}/estimate`, {
       method: "POST",
       headers: { Authorization: `Bearer ${await idToken()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ image }),
+      body: JSON.stringify({ image, kind }),
     });
   } catch {
     throw new ScanError("Couldn't reach GlycoTank. Check your internet connection.");
   }
   const data = await res.json().catch(() => ({}));
   if (res.status === 404) throw new ScanError("Photo estimates aren't available yet.");
-  if (!res.ok) throw new ScanError(data.error || "Something went wrong estimating this photo. Please try again.");
+  if (!res.ok) throw new ScanError(data.error || "Something went wrong reading this photo. Please try again.");
   return data;
 }

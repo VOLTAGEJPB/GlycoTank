@@ -1,6 +1,7 @@
-// POST /estimate { image: <base64 JPEG> } -> { items: [...], note }
+// POST /estimate { image: <base64 JPEG>, kind?: "meal" | "receipt" } -> { items: [...], note }
 //
-// Estimates the foods and nutrition in a photo of a meal with Claude. The photo
+// Estimates the foods and nutrition in a photo of a meal, or the items ordered
+// on a restaurant receipt, with Claude. The photo
 // is only held in memory for the request; nothing is stored. Each user gets a
 // daily limit so a stuck client (or someone abusing a token) can't run up the
 // bill. The Anthropic API key lives in SSM Parameter Store (SecureString).
@@ -72,12 +73,22 @@ const PROMPT = `This photo was taken by someone logging a meal in a nutrition tr
 - note: one short sentence naming the biggest uncertainty (for example hidden oil or sauce, or portion size), so they know what to double-check.
 - If the photo doesn't show food or drink, set is_food to false, return no items and say what you see in note.`;
 
+const RECEIPT_PROMPT = `This is a photo of a restaurant or takeout receipt, taken by someone logging what they ate in a nutrition tracker. List the food and drink items that were ordered, so they can tick the ones they ate.
+
+- One entry per item. If an item was ordered more than once (a quantity of 2, or repeated lines), list it once per unit so each can be ticked separately.
+- Fold modifiers and add-ons (extra cheese, add bacon, large size, no sauce) into the item they belong to, adjusting its nutrition. Skip tax, tip, fees, discounts, utensils, bags and other non-food lines.
+- name: a readable name for the dish, expanding receipt abbreviations ("CHKN SNDWCH" becomes "Chicken sandwich"). Include the restaurant's name for its signature items when that helps (for example "Chipotle burrito bowl").
+- portion: the serving as ordered, such as "1 sandwich", "large" or "12 oz".
+- kcal, carbs, protein, fat and fiber (grams) are for one unit as served. If you know the restaurant's published nutrition for that item, use it; otherwise use typical values for that dish at a restaurant.
+- note: one short sentence on what was hardest to read or estimate.
+- If the photo isn't a receipt or no food or drink items can be read, set is_food to false, return no items and say what you see in note.`;
+
 export async function handler(event) {
   const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!userId) return json(401, { error: "unauthorized" });
-  let image;
+  let image, kind;
   try {
-    image = JSON.parse(event.body || "{}").image;
+    ({ image, kind } = JSON.parse(event.body || "{}"));
   } catch {
     return json(400, { error: "bad request" });
   }
@@ -97,7 +108,7 @@ export async function handler(event) {
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
-          { type: "text", text: PROMPT },
+          { type: "text", text: kind === "receipt" ? RECEIPT_PROMPT : PROMPT },
         ],
       }],
     });
@@ -105,9 +116,9 @@ export async function handler(event) {
     if (msg.stop_reason === "max_tokens") return json(502, { error: "The estimate was cut short. Please try again." });
     const text = msg.content.find((b) => b.type === "text")?.text;
     const out = JSON.parse(text);
-    if (!out.is_food || !out.items.length) return json(422, { error: out.note || "No food found in this photo." });
+    if (!out.is_food || !out.items.length) return json(422, { error: out.note || (kind === "receipt" ? "Couldn't find any food items on this receipt." : "No food found in this photo.") });
     const round = (n) => Math.max(0, Math.round((+n || 0) * 10) / 10);
-    const items = out.items.slice(0, 12).map((i) => ({
+    const items = out.items.slice(0, 24).map((i) => ({
       name: String(i.name).slice(0, 80),
       portion: String(i.portion).slice(0, 60),
       kcal: Math.round(round(i.kcal)), carbs: round(i.carbs), protein: round(i.protein), fat: round(i.fat), fiber: round(i.fiber),
