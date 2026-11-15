@@ -45,10 +45,13 @@ export function toast(message) {
 }
 
 // Promise-based confirm dialog that matches the app's styling.
-export function confirmDialog(message, okLabel = "Delete") {
+export function confirmDialog(message, okLabel = "Delete", danger = true) {
   const dlg = $("#confirm");
   $("#confirmText", dlg).textContent = message;
-  $("#confirmOk", dlg).textContent = okLabel;
+  const ok = $("#confirmOk", dlg);
+  ok.textContent = okLabel;
+  ok.classList.toggle("danger", danger);
+  ok.classList.toggle("primary", !danger);
   dlg.showModal();
   return new Promise((resolve) => {
     dlg.addEventListener("close", () => resolve(dlg.returnValue === "ok"), { once: true });

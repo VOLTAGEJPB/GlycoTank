@@ -23,6 +23,13 @@ if ($LASTEXITCODE -ne 0) {
   aws s3api put-public-access-block --bucket $bucket --region $Region --public-access-block-configuration "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
 }
 
+# The photo-estimate function bundles its own dependencies (the Anthropic SDK).
+Push-Location (Join-Path $here "estimate")
+npm ci --omit=dev --no-audit --no-fund | Out-Null
+$npmExit = $LASTEXITCODE
+Pop-Location
+if ($npmExit -ne 0) { throw "npm ci failed in backend/estimate" }
+
 $packaged = Join-Path $env:TEMP "glycotank-packaged.yaml"
 aws cloudformation package --template-file "$here\template.yaml" --s3-bucket $bucket --output-template-file $packaged --region $Region | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "package failed" }

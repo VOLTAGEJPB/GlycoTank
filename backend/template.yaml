@@ -43,6 +43,11 @@ Parameters:
     Default: ""
     NoEcho: true
 
+  AnthropicKeyParam:
+    Type: String
+    Default: /glycotank/anthropic-api-key
+    Description: SSM SecureString holding the Anthropic API key for meal photo estimates.
+
 Conditions:
   UseSes: !Not [!Equals [!Ref EmailDomain, ""]]
   UseGoogle: !Not [!Equals [!Ref GoogleClientId, ""]]
@@ -206,6 +211,9 @@ Resources:
         - { AttributeName: recordKey, KeyType: RANGE }
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
       SSESpecification:
         SSEEnabled: true
 
@@ -251,6 +259,31 @@ Resources:
         GetSync: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /sync, Method: GET } }
         PostSync: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /sync, Method: POST } }
         DeleteAccount: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /account, Method: DELETE } }
+
+  # Meal photo -> estimated foods and nutrition (Claude). The Anthropic API key
+  # is a SecureString in SSM Parameter Store at AnthropicKeyParam; until it
+  # exists the route answers "not set up yet".
+  EstimateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: estimate/
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 29
+      Environment:
+        Variables:
+          TABLE: !Ref DataTable
+          API_KEY_PARAM: !Ref AnthropicKeyParam
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: dynamodb:UpdateItem
+              Resource: !GetAtt DataTable.Arn
+            - Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AnthropicKeyParam}
+      Events:
+        Estimate: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /estimate, Method: POST } }
 
 Outputs:
   ApiUrl:

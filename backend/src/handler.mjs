@@ -37,7 +37,7 @@ async function allRecords(userId) {
 // devices can't make a device miss changes.
 async function changesSince(userId, since) {
   return (await allRecords(userId))
-    .filter((it) => it.serverTime > since)
+    .filter((it) => it.kind && it.serverTime > since) // rows without a kind (e.g. usage counters) aren't synced
     .map(({ kind, id, updatedAt, deleted, data, serverTime }) => ({ kind, id, updatedAt, deleted: !!deleted, data: data ?? null, serverTime }));
 }
 

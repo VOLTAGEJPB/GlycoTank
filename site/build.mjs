@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const CONTACT = "joel.perez5588@gmail.com";
-const UPDATED = "November 12, 2026";
+const UPDATED = "November 15, 2026";
 
 const css = `
 :root{--bg:#0f1115;--card:#161a23;--text:#e8ebf1;--muted:#98a2b3;--line:#262c3d;--accent:#57cc99}
@@ -112,10 +112,12 @@ page(
 <p>Where the law requires it (for example in the European Economic Area, the UK and some US states), the app asks for your consent before personalized ads are shown, and you can change your choice later. You can also reset or delete your advertising ID, or opt out of personalized ads, in your phone's settings (on Android: <em>Settings → Privacy → Ads</em>; on iPhone: <em>Settings → Privacy &amp; Security → Apple Advertising</em>). On iPhone, GlycoTank does not ask to track you across other companies' apps and websites, so the advertising ID is not available to the app and ads are not personalized based on your activity elsewhere.</p>
 
 <h2>What we don't collect</h2>
-<p>Apart from the ads described above, GlycoTank has no analytics, no crash reporting and no third-party tracking tools. We don't collect your location (other than the approximate location Google infers for ads), contacts or photos.</p>
+<p>Apart from the ads described above, GlycoTank has no analytics, no crash reporting and no third-party tracking tools. We don't collect your location (other than the approximate location Google infers for ads) or contacts, and we don't keep your photos (see meal photo estimates below).</p>
 
 <h2>Scanning food</h2>
+<p><strong>Food search</strong> uses a food list built into the app (from USDA FoodData Central). Searches stay on your device.</p>
 <p><strong>Nutrition label scans</strong> are read entirely on your device. The photo is not uploaded anywhere.</p>
+<p><strong>Meal photo estimates</strong> are optional. When you choose "Estimate from a photo", a reduced-size copy of that photo is sent over an encrypted connection to our server and from there to <a href="https://www.anthropic.com">Anthropic</a>, whose Claude AI model identifies the foods and estimates their nutrition. The photo is used only to produce that estimate: we don't store it, and Anthropic handles it as our service provider under <a href="https://www.anthropic.com/legal/privacy">its privacy policy</a> and commercial terms, which don't allow it to be used to train AI models. Only the photo is sent, not your name, email address or other GlycoTank data. The app asks before your first photo estimate, and you can always log meals without it. Estimates can be wrong, so check them before saving.</p>
 <p><strong>Barcode lookups</strong> send only the product's barcode number to <a href="https://world.openfoodfacts.org">Open Food Facts</a>, a free, open food database, to fetch the product's name and nutrition information. No other information about you or your data is sent. Open Food Facts receives the request like any website visit, under <a href="https://world.openfoodfacts.org/privacy">its own privacy policy</a>.</p>
 
 <h2>Exports and backups</h2>

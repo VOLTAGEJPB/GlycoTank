@@ -1,5 +1,7 @@
 import { localDate, plateMath, parseMealText, mealSlot, slotForHour, MEAL_SLOTS } from "../model.js";
 import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
+import { loadFoods, searchFoods, portionsFor, nutritionFor, portionLabel, sumItems } from "../foods.js";
+import { photoEstimates, estimateFromPhoto } from "../photo.js";
 import { uid } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 
@@ -59,8 +61,14 @@ function renderMeal(root, app) {
     <section class="card">
       <h2>${m ? "Edit food" : "Add food"}</h2>
       ${select("mSlot", "Meal", MEAL_SLOTS, slot)}
+      <div class="food-search">
+        <label class="field"><span>Search foods</span><input id="foodQ" type="search" enterkeyhint="search" placeholder="e.g. bagel, cream cheese, banana" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+        <ul id="foodResults" class="food-results" hidden></ul>
+        <div id="foodPick" class="scan-result food-pick" hidden></div>
+      </div>
       ${m ? "" : `
       <div class="scan-row">
+        ${photoEstimates() ? `<button class="btn scan-btn photo-btn" id="mealPhoto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>Estimate from a photo</button>` : ""}
         <button class="btn scan-btn" id="scanBarcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v14H3V5zm3 0h1v14H6V5zm2 0h2v14H8V5zm3 0h1v14h-1V5zm3 0h2v14h-2V5zm3 0h1v14h-1V5zm2 0h2v14h-2V5z"/></svg>${native ? "Scan barcode" : "Look up barcode"}</button>
         ${native ? `<button class="btn scan-btn" id="scanLabel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM8 9h8v2H8V9zm0 4h6v2H8v-2z"/></svg>Scan label</button>` : ""}
       </div>
@@ -68,8 +76,9 @@ function renderMeal(root, app) {
         <input id="barcodeInput" inputmode="numeric" placeholder="Barcode number, e.g. 016000275287" aria-label="Barcode number">
         <button class="btn small" id="barcodeGo">Look up</button>
       </div>
-      ${native ? `<p class="hint scan-alt"><a href="#" id="typeBarcode">Type a barcode</a> · <a href="#" id="pickLabel">Use a photo of a label</a></p>` : ""}
+      ${native ? `<p class="hint scan-alt"><a href="#" id="typeBarcode">Type a barcode</a> · <a href="#" id="pickLabel">Use a photo of a label</a>${photoEstimates() ? ` · <a href="#" id="pickMealPhoto">Meal photo from library</a>` : ""}</p>` : ""}
       <div id="scanResult" class="scan-result" hidden></div>`}
+      <div id="mealItems" class="meal-items" hidden></div>
       ${quick.length ? `<div class="label mt">Favorites &amp; recent</div>
       <div class="chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${q.fav ? "★ " : ""}${esc(q.name)}<small>${Math.round(q.kcal || 0)} kcal</small></button>`).join("")}</div>` : ""}
       <div class="row2">
@@ -101,6 +110,119 @@ function renderMeal(root, app) {
   Object.values(ids).forEach((id) => $("#" + id).addEventListener("input", estimate));
   estimate();
 
+  // ----- Foods in this meal -----
+  // Foods added from search or a photo (plus a scanned product) add up into the
+  // fields below, which stay editable. The meal name follows the foods until
+  // the user types their own.
+  const items = (m?.items || []).filter((it) => it.source !== "scan").map((it) => ({ ...it }));
+  let scanItem = m?.items?.find((it) => it.source === "scan") || null;
+  let photoNote = "";
+  let nameAuto = !v.name || !!m?.items?.length;
+  $("#mName").addEventListener("input", () => (nameAuto = false));
+  const allItems = () => (scanItem ? [...items, scanItem] : items);
+  const refreshItems = (applyTotals = true) => {
+    const box = $("#mealItems");
+    box.hidden = !items.length;
+    box.innerHTML = items.length ? `
+      <div class="label">In this meal</div>
+      <ul>${items.map((it, i) => `
+        <li><span class="mi-name"><strong>${esc(it.name)}</strong><small>${esc(it.portion)}${it.source === "photo" ? " · estimated from photo" : ""}</small></span>
+          <span class="mi-kcal">${Math.round(it.kcal)} kcal</span>
+          <button class="drink-del" data-item-del="${i}" aria-label="Remove ${esc(it.name)}">✕</button></li>`).join("")}</ul>
+      ${photoNote ? `<p class="hint">${esc(photoNote)}</p>` : ""}` : "";
+    $$("[data-item-del]", box).forEach((b) =>
+      b.addEventListener("click", () => {
+        items.splice(+b.dataset.itemDel, 1);
+        if (!items.some((it) => it.source === "photo")) photoNote = "";
+        refreshItems();
+      }),
+    );
+    if (!applyTotals) return; // opening a saved meal keeps its saved numbers
+    const all = allItems();
+    const t = sumItems(all);
+    for (const [k, id] of Object.entries(ids)) $("#" + id).value = all.length ? t[k] : "";
+    if (nameAuto) $("#mName").value = all.map((it) => it.short ?? it.name).filter(Boolean).join(" + ");
+    estimate();
+  };
+  if (items.length) refreshItems(false);
+
+  // ----- Search foods -----
+  let foodList = null;
+  let searchTimer;
+  const foodQ = $("#foodQ");
+  const runSearch = async () => {
+    const text = foodQ.value.trim();
+    const ul = $("#foodResults");
+    if (text.length < 2) return (ul.hidden = true);
+    try {
+      foodList ??= await loadFoods();
+    } catch (e) {
+      console.error(e);
+      ul.hidden = false;
+      ul.innerHTML = `<li class="hint">Couldn't load the food list. Please try again.</li>`;
+      return;
+    }
+    if (foodQ.value.trim() !== text) return; // the user kept typing
+    const rows = searchFoods(foodList, text, 15);
+    ul.hidden = false;
+    ul.innerHTML = rows.length
+      ? rows.map((r, i) => {
+          const [desc, grams] = portionsFor(r)[0];
+          return `<li><button data-food="${i}"><strong>${esc(r[0])}</strong><small>${nutritionFor(r, grams).kcal} kcal · ${esc(desc)}</small></button></li>`;
+        }).join("")
+      : `<li class="hint">No matches. Try a simpler word, or enter the numbers below.</li>`;
+    $$("[data-food]", ul).forEach((b) => b.addEventListener("click", () => pickFood(rows[b.dataset.food])));
+  };
+  foodQ.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(runSearch, 120);
+  });
+  foodQ.addEventListener("keydown", (e) => e.key === "Enter" && (e.preventDefault(), foodQ.blur()));
+  const pickFood = (row) => {
+    $("#foodResults").hidden = true;
+    const ps = portionsFor(row);
+    const short = row[0].split(",")[0];
+    const box = $("#foodPick");
+    box.hidden = false;
+    box.innerHTML = `
+      <div class="scan-head"><strong>${esc(row[0])}</strong><span>USDA FoodData Central</span></div>
+      <div class="pick-row">
+        <label class="field"><span>Amount</span><input id="fpQty" type="number" inputmode="decimal" min="0" step="any" value="1"></label>
+        <label class="field"><span>Portion</span><select id="fpPortion">${ps.map(([d, g], i) => `<option value="${i}">${esc(d)}${/^(oz|g)$/.test(d) ? "" : ` (${g} g)`}</option>`).join("")}</select></label>
+      </div>
+      <p class="hint" id="fpInfo"></p>
+      <div class="actions"><button class="btn primary" id="fpAdd">Add to meal</button><button class="btn ghost" id="fpCancel">Cancel</button></div>`;
+    const qty = $("#fpQty");
+    const sel = $("#fpPortion");
+    const grams = () => ps[sel.value][1] * (num(qty) || 0);
+    const calc = () => {
+      const n = nutritionFor(row, grams());
+      $("#fpInfo").textContent = `${n.kcal} kcal · ${n.carbs} g carbs · ${n.protein} g protein · ${n.fat} g fat`;
+    };
+    sel.addEventListener("change", () => {
+      // Switching to grams starts at 100 g; switching back starts at 1.
+      if (ps[sel.value][0] === "g") qty.value = 100;
+      else if (num(qty) >= 50) qty.value = 1;
+      calc();
+    });
+    qty.addEventListener("input", calc);
+    calc();
+    $("#fpAdd").addEventListener("click", () => {
+      const amount = num(qty);
+      if (!(amount > 0)) return toast("Enter an amount");
+      items.push({ name: row[0], short, portion: portionLabel(ps[sel.value][0], amount), grams: Math.round(grams()), ...nutritionFor(row, grams()), source: "usda" });
+      box.hidden = true;
+      foodQ.value = "";
+      refreshItems();
+      success(`${short} added`);
+    });
+    $("#fpCancel").addEventListener("click", () => {
+      box.hidden = true;
+      foodQ.focus();
+    });
+    box.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  };
+
   $("#mQuick").addEventListener("input", (e) => {
     const p = parseMealText(e.target.value);
     for (const [k, id] of Object.entries(ids)) if (p[k] != null) $("#" + id).value = p[k];
@@ -109,15 +231,12 @@ function renderMeal(root, app) {
   // ----- Scan to fill -----
   let scanned = null; // values for one serving, as scanned
   const fillFromScan = (servings) => {
-    for (const [k, id] of Object.entries(ids)) {
-      const v = scanned[k];
-      $("#" + id).value = v == null ? "" : Math.round(v * servings * 10) / 10;
-    }
-    estimate();
+    const scaled = Object.fromEntries(Object.keys(ids).map((k) => [k, Math.round((scanned[k] || 0) * servings * 10) / 10]));
+    scanItem = { name: scanned.name || "Scanned food", short: scanned.name || "", portion: `${servings} × ${scanned.serving || "serving"}`, ...scaled, source: "scan" };
+    refreshItems();
   };
   const showScan = (item) => {
     scanned = item;
-    if (item.name && !$("#mName").value.trim()) $("#mName").value = item.name;
     const box = $("#scanResult");
     box.hidden = false;
     box.innerHTML = `
@@ -208,6 +327,35 @@ function renderMeal(root, app) {
     $("#barcodeInput").focus();
   });
   $("#barcodeGo")?.addEventListener("click", (e) => lookup($("#barcodeInput").value, e.currentTarget));
+  // ----- Meal photo estimate -----
+  const fromPhoto = async (fromGallery) => {
+    if (!state.settings.photoConsent) {
+      const ok = await confirmDialog("To estimate your meal, the photo is sent to the GlycoTank server and to Claude, an AI from Anthropic. Photos aren't saved. Estimates can be off, so check the numbers before saving.", "Continue", false);
+      if (!ok) return;
+      state.settings.photoConsent = true;
+      app.save();
+    }
+    const btn = $("#mealPhoto");
+    try {
+      const res = await estimateFromPhoto(fromGallery, () => busy(btn, true, "Estimating…"));
+      if (!res) return;
+      for (const it of res.items) items.push({ ...it, short: it.name, source: "photo" });
+      photoNote = res.note || "";
+      refreshItems();
+      success(`Found ${res.items.length} ${res.items.length === 1 ? "food" : "foods"}`);
+      $("#mealItems").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    } catch (err) {
+      report(err);
+    } finally {
+      busy(btn, false);
+    }
+  };
+  $("#mealPhoto")?.addEventListener("click", () => fromPhoto(false));
+  $("#pickMealPhoto")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    fromPhoto(true);
+  });
+
   // Scan buttons on Today land here and start the scan straight away.
   if (app.autoScan) {
     $(app.autoScan === "label" ? "#scanLabel" : "#scanBarcode")?.click();
@@ -219,6 +367,11 @@ function renderMeal(root, app) {
   $$("[data-quick]", root).forEach((b) =>
     b.addEventListener("click", () => {
       const f = quick[b.dataset.quick];
+      items.length = 0;
+      scanItem = null;
+      photoNote = "";
+      refreshItems();
+      nameAuto = false;
       $("#mName").value = f.name;
       for (const [k, id] of Object.entries(ids)) $("#" + id).value = f[k] ?? "";
       $$("[data-quick]", root).forEach((c) => c.classList.toggle("picked", c === b));
@@ -233,7 +386,8 @@ function renderMeal(root, app) {
   };
 
   $("#mSave").addEventListener("click", () => {
-    const data = { ...read(), slot: $("#mSlot").value, date: $("#mDate").value || localDate() };
+    const all = allItems();
+    const data = { ...read(), items: all.length ? all : undefined, slot: $("#mSlot").value, date: $("#mDate").value || localDate() };
     if (m) Object.assign(m, data);
     else state.meals.push({ id: uid(), ...data });
     app.editing = null;

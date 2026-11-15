@@ -481,6 +481,30 @@ body.onboarding { overflow: hidden; }
 .servings input { width: 72px; text-align: center; min-height: 40px; padding: 6px; }
 .servings .icon-btn { width: 40px; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); font-size: 20px; }
 .scan-result .hint { margin: 8px 0 0; font-size: 13px; }
+.scan-row .photo-btn { grid-column: 1 / -1; }
+
+/* Food search and the foods in a meal */
+.food-search { position: relative; }
+.food-search .field { margin-bottom: 8px; }
+.food-results { list-style: none; margin: -2px 0 12px; padding: 4px; background: var(--field); border: 1px solid var(--line); border-radius: 12px; max-height: 320px; overflow-y: auto; }
+.food-results li.hint { padding: 8px 10px; margin: 0; }
+.food-results button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 9px 10px; background: none; border: 0; border-radius: 8px; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.food-results button:active { background: var(--line); }
+.food-results strong { font-weight: 600; font-size: 15px; }
+.food-results small { color: var(--muted); font-size: 13px; }
+.pick-row { display: grid; grid-template-columns: 96px 1fr; gap: 10px; margin-top: 10px; }
+.pick-row .field { margin: 0; }
+.food-pick .actions { margin-top: 4px; }
+.meal-items { margin: 4px 0 14px; padding: 10px 14px; background: var(--field); border: 1px solid var(--line); border-radius: 14px; }
+.meal-items ul { list-style: none; margin: 6px 0 0; padding: 0; }
+.meal-items li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.meal-items li:first-child { border-top: 0; }
+.mi-name { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.mi-name strong { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
+.mi-name small { color: var(--muted); font-size: 13px; }
+.mi-kcal { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.meal-items .drink-del { margin-left: 0; }
+.meal-items .hint { margin: 6px 0 0; font-size: 13px; }
 
 /* Sign-in screen */
 #auth .ob-top { min-height: 20px; }
