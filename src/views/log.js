@@ -67,16 +67,23 @@ function renderMeal(root, app) {
         <div id="foodPick" class="scan-result food-pick" hidden></div>
       </div>
       ${m ? "" : `
-      <div class="scan-row">
-        ${photoEstimates() ? `<button class="btn scan-btn photo-btn" id="mealPhoto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>Estimate from a photo</button>` : ""}
-        <button class="btn scan-btn" id="scanBarcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v14H3V5zm3 0h1v14H6V5zm2 0h2v14H8V5zm3 0h1v14h-1V5zm3 0h2v14h-2V5zm3 0h1v14h-1V5zm2 0h2v14h-2V5z"/></svg>${native ? "Scan barcode" : "Look up barcode"}</button>
-        ${native ? `<button class="btn scan-btn" id="scanLabel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM8 9h8v2H8V9zm0 4h6v2H8v-2z"/></svg>Scan label</button>` : ""}
+      <div class="label">Or add with</div>
+      <div class="add-tiles">
+        ${photoEstimates() ? `<button type="button" class="add-tile" id="mealPhoto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>Photo</button>` : ""}
+        <button type="button" class="add-tile" id="scanBarcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v14H3V5zm3 0h1v14H6V5zm2 0h2v14H8V5zm3 0h1v14h-1V5zm3 0h2v14h-2V5zm3 0h1v14h-1V5zm2 0h2v14h-2V5z"/></svg>Barcode</button>
+        ${native ? `<button type="button" class="add-tile" id="scanLabel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM8 9h8v2H8V9zm0 4h6v2H8v-2z"/></svg>Label</button>` : ""}
+        ${photoEstimates() ? `<button type="button" class="add-tile" id="scanReceipt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2v20l2.33-1.5L9.67 22 12 20.5 14.33 22l2.34-1.5L19 22V2l-2.33 1.5L14.33 2 12 3.5 9.67 2 7.33 3.5 5 2zm3 6h8v2H8V8zm0 4h8v2H8v-2z"/></svg>Receipt</button>` : ""}
       </div>
-      <div id="barcodeEntry" class="barcode-entry" ${native ? "hidden" : ""}>
-        <input id="barcodeInput" inputmode="numeric" placeholder="Barcode number, e.g. 016000275287" aria-label="Barcode number">
-        <button class="btn small" id="barcodeGo">Look up</button>
+      <div id="barcodeEntry" class="barcode-entry" hidden>
+        <input id="barcodeInput" inputmode="numeric" placeholder="Barcode number" aria-label="Barcode number">
+        <button type="button" class="btn small" id="barcodeGo">Look up</button>
       </div>
-      ${native ? `<p class="hint scan-alt"><a href="#" id="typeBarcode">Type a barcode</a> · <a href="#" id="pickLabel">Use a photo of a label</a>${photoEstimates() ? ` · <a href="#" id="pickMealPhoto">Meal photo from library</a> · <a href="#" id="scanReceipt">Scan a restaurant receipt</a>` : ""}</p>` : ""}
+      <dialog id="addSheet" class="add-sheet" aria-labelledby="addSheetTitle">
+        <h3 id="addSheetTitle"></h3>
+        <p id="addSheetHint" class="hint"></p>
+        <div id="addSheetOptions" class="add-sheet-options"></div>
+        <button type="button" class="btn ghost" id="addSheetCancel">Cancel</button>
+      </dialog>
       <div id="scanResult" class="scan-result" hidden></div>
       <div id="receiptPick" class="scan-result receipt-pick" hidden></div>`}
       <div id="mealItems" class="meal-items" hidden></div>
@@ -274,7 +281,7 @@ function renderMeal(root, app) {
     }
   };
   const lookup = async (code, btn) => {
-    busy(btn, true, "Looking up…");
+    busy(btn, true, "Finding…");
     try {
       showScan(await lookupBarcode(code));
       success("Found it");
@@ -284,11 +291,14 @@ function renderMeal(root, app) {
       busy(btn, false);
     }
   };
-  $("#scanBarcode")?.addEventListener("click", async (e) => {
-    const btn = e.currentTarget;
-    if (!native) return $("#barcodeInput").focus();
+  const typeBarcode = () => {
+    $("#barcodeEntry").hidden = false;
+    $("#barcodeInput").focus();
+  };
+  const startBarcodeScan = async () => {
+    const btn = $("#scanBarcode");
     try {
-      const code = await scanBarcode(() => busy(btn, true, "Setting up scanner…"));
+      const code = await scanBarcode(() => busy(btn, true, "Starting…"));
       busy(btn, false);
       if (code) await lookup(code, btn);
     } catch (err) {
@@ -301,11 +311,11 @@ function renderMeal(root, app) {
         $("#barcodeInput").scrollIntoView({ block: "center", behavior: "smooth" });
       }
     }
-  });
+  };
   const readLabel = async (fromGallery) => {
     const btn = $("#scanLabel");
     try {
-      busy(btn, true, "Reading label…");
+      busy(btn, true, "Reading…");
       const item = await scanLabel(fromGallery);
       if (item) {
         showScan(item);
@@ -317,16 +327,6 @@ function renderMeal(root, app) {
       busy(btn, false);
     }
   };
-  $("#scanLabel")?.addEventListener("click", () => readLabel(false));
-  $("#pickLabel")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    readLabel(true);
-  });
-  $("#typeBarcode")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    $("#barcodeEntry").hidden = false;
-    $("#barcodeInput").focus();
-  });
   $("#barcodeGo")?.addEventListener("click", (e) => lookup($("#barcodeInput").value, e.currentTarget));
   // ----- Meal photo estimate -----
   const photoConsent = async () => {
@@ -342,7 +342,7 @@ function renderMeal(root, app) {
     if (!(await photoConsent())) return;
     const btn = $("#mealPhoto");
     try {
-      const res = await estimateFromPhoto(fromGallery, () => busy(btn, true, "Estimating…"));
+      const res = await estimateFromPhoto(fromGallery, () => busy(btn, true, "Reading…"));
       if (!res) return;
       for (const it of res.items) items.push({ ...it, short: it.name, source: "photo" });
       photoNote = res.note || "";
@@ -355,7 +355,6 @@ function renderMeal(root, app) {
       busy(btn, false);
     }
   };
-  $("#mealPhoto")?.addEventListener("click", () => fromPhoto(false));
 
   // ----- Restaurant receipt: tick what you ate -----
   const SHARES = [[1, "All"], [0.5, "Half"], [0.25, "A quarter"]];
@@ -390,28 +389,54 @@ function renderMeal(root, app) {
     $("#receiptCancel").addEventListener("click", () => (box.hidden = true));
     box.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
-  $("#scanReceipt")?.addEventListener("click", async (e) => {
-    e.preventDefault();
+  const readReceipt = async (fromGallery) => {
     if (!(await photoConsent())) return;
-    const link = e.currentTarget;
-    const label = link.textContent;
+    const btn = $("#scanReceipt");
     try {
-      const res = await estimateFromPhoto(false, () => (link.textContent = "Reading receipt…"), "receipt");
+      const res = await estimateFromPhoto(fromGallery, () => busy(btn, true, "Reading…"), "receipt");
       if (res) showReceipt(res);
     } catch (err) {
       report(err);
     } finally {
-      link.textContent = label;
+      busy(btn, false);
     }
+  };
+
+  // ----- The four "Or add with" tiles: each asks where the food comes from -----
+  const fromCamera = (run) => [["Take a photo", () => run(false)], ["Choose from library", () => run(true)]];
+  const SHEETS = {
+    mealPhoto: { title: "Photo of your meal", hint: "We'll estimate the foods and their nutrition.", options: fromCamera(fromPhoto) },
+    scanBarcode: { title: "Barcode", hint: "Find a packaged food by its barcode.", options: [["Scan barcode", startBarcodeScan], ["Type the number", typeBarcode]] },
+    scanLabel: { title: "Nutrition label", hint: "We'll read the numbers from the label.", options: fromCamera(readLabel) },
+    scanReceipt: { title: "Restaurant receipt", hint: "Tick what you ate from the items on it.", options: fromCamera(readReceipt) },
+  };
+  const sheet = $("#addSheet");
+  Object.entries(SHEETS).forEach(([id, { title, hint, options }]) => {
+    $(`#${id}`)?.addEventListener("click", () => {
+      // Only the camera needs a choice; a browser can't scan, so go straight to typing.
+      if (id === "scanBarcode" && !native) return typeBarcode();
+      $("#addSheetTitle").textContent = title;
+      $("#addSheetHint").textContent = hint;
+      const box = $("#addSheetOptions");
+      box.replaceChildren(...options.map(([label, run]) => {
+        const b = Object.assign(document.createElement("button"), { type: "button", className: "btn", textContent: label });
+        b.addEventListener("click", () => {
+          sheet.close();
+          run();
+        });
+        return b;
+      }));
+      sheet.showModal();
+    });
   });
-  $("#pickMealPhoto")?.addEventListener("click", (e) => {
-    e.preventDefault();
-    fromPhoto(true);
-  });
+  $("#addSheetCancel")?.addEventListener("click", () => sheet.close());
+  sheet?.addEventListener("click", (e) => e.target === sheet && sheet.close()); // tap outside
 
   // Scan buttons on Today land here and start the scan straight away.
   if (app.autoScan) {
-    $(app.autoScan === "label" ? "#scanLabel" : "#scanBarcode")?.click();
+    if (app.autoScan === "label") readLabel(false);
+    else if (native) startBarcodeScan();
+    else typeBarcode();
     app.autoScan = null;
   }
   $("#barcodeInput")?.addEventListener("keydown", (e) => e.key === "Enter" && lookup(e.target.value, $("#barcodeGo")));
