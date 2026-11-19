@@ -473,6 +473,10 @@ body.onboarding { overflow: hidden; }
 .add-tile svg { width: 24px; height: 24px; fill: var(--accent); fill-rule: evenodd; flex: none; }
 .add-sheet { width: min(100%, 560px); max-width: 100%; margin: auto auto 0; padding: 20px 16px calc(16px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; }
 .add-sheet h3 { margin: 0; font-size: 18px; }
+.email-banner { display: block; width: 100%; margin: -4px 0 14px; padding: 12px 14px; background: #17271f; border: 1px solid #2c4a3c; border-radius: 12px; color: var(--accent); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.email-order { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.email-order-head { display: flex; flex-direction: column; gap: 2px; }
+.email-order-head small { color: var(--muted); font-size: 13px; }
 .add-sheet .hint { margin: 4px 0 14px; }
 .add-sheet-options { display: grid; gap: 8px; margin-bottom: 8px; }
 .add-sheet .btn { width: 100%; min-height: 50px; }

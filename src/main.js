@@ -4,7 +4,8 @@ import { loadState, saveState, saveQuietly, resetState, flush, emptyState, onSav
 import * as auth from "./auth.js";
 import { initSync, scheduleSync, syncNow } from "./sync.js";
 import { openAuth } from "./views/auth.js";
-import { $, $$ } from "./ui.js";
+import { $, $$, toast } from "./ui.js";
+import { gmailAvailable, gmailLinked, gmailOrders } from "./gmail.js";
 import { enterView, haptic, reducedMotion } from "./motion.js";
 import { glycoSeries, localDate } from "./model.js";
 import { renderMeals } from "./views/meals.js";
@@ -204,6 +205,12 @@ async function requireAccount() {
   }
   if (!app.state.meta.introSeen || params.has("intro")) showIntro({ startAt: +(params.get("intro") || 0) });
   else if (!params.has("demo")) startAds();
+  // A linked Gmail is checked on launch; a failure just shows nothing.
+  if (gmailAvailable()) {
+    gmailLinked().then((linked) => (linked ? gmailOrders() : [])).then((orders) => {
+      if (orders.length) toast(`${orders.length} new food ${orders.length === 1 ? "order" : "orders"} from Gmail. Open Log to add ${orders.length === 1 ? "it" : "them"}.`);
+    }).catch(() => {});
+  }
   if (params.has("demo") && params.get("scroll")) document.querySelectorAll(".card")[+params.get("scroll")]?.scrollIntoView({ block: "start" });
   // Demo only: pre-fill fields for screenshots, e.g. &fill=mName:Chicken bowl|mQuick:650 cal 70c
   if (params.has("demo") && params.get("fill")) {

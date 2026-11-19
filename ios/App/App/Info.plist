@@ -82,6 +82,14 @@
 				<string>glycotank</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.joel.glycotank.gmail</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1056070324618-ljegnftl9ls2u2kbs95hk30952dgcim9</string>
+			</array>
+		</dict>
 	</array>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-1749311923941430~5030507306</string>
