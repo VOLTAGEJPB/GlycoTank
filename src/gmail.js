@@ -14,6 +14,9 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const API = "https://gmail.googleapis.com/gmail/v1/users/me";
 const TOKEN_KEY = "gmail-refresh-token";
 const SKIPPED_KEY = "gmail-skipped-orders";
+const ACCOUNT_KEY = "gmail-account";
+// How far back order emails are read.
+export const ORDER_DAYS = 30;
 const FORM = { "Content-Type": "application/x-www-form-urlencoded" };
 const CACHE_MS = 5 * 60 * 1000;
 
@@ -82,7 +85,12 @@ export async function linkGmail() {
   await SecureStorage.set(TOKEN_KEY, res.data.refresh_token, false, false, KeychainAccess.whenUnlockedThisDeviceOnly);
   keepAccess(res.data);
   cache = null;
+  // The linked address, shown on the Email receipts page. Kept on this phone only.
+  const profile = await gmail("/profile").catch(() => null);
+  if (profile?.emailAddress) await Preferences.set({ key: ACCOUNT_KEY, value: profile.emailAddress });
 }
+
+export const gmailAccount = async () => (await Preferences.get({ key: ACCOUNT_KEY })).value || "";
 
 async function forget() {
   access = null;
@@ -97,7 +105,7 @@ async function accessToken() {
   const res = await post(TOKEN_URL, { client_id: GMAIL_CLIENT_ID, grant_type: "refresh_token", refresh_token });
   if (res.status === 400 || res.status === 401) {
     await forget(); // access was removed or has expired
-    throw new ScanError("Your Gmail link expired. Tap Email receipts to link it again.");
+    throw new ScanError("Your Gmail link expired. Go to More, then Email receipts, to link it again.");
   }
   if (res.status !== 200) throw new ScanError("Couldn't reach Gmail. Please try again.");
   keepAccess(res.data);
@@ -118,14 +126,15 @@ async function gmail(path) {
 
 const skipped = async () => JSON.parse((await Preferences.get({ key: SKIPPED_KEY })).value || "[]");
 
-// New food orders from the last two weeks, newest first.
+// New food orders from the last ORDER_DAYS days, newest first.
 export async function gmailOrders(fresh = false) {
   if (!fresh && cache && Date.now() - cache.at < CACHE_MS) return cache.orders;
-  const list = await gmail(`/messages?${new URLSearchParams({ q: gmailQuery(14), maxResults: "20" })}`);
+  const list = await gmail(`/messages?${new URLSearchParams({ q: gmailQuery(ORDER_DAYS), maxResults: "50" })}`);
   const skip = new Set(await skipped());
   const ids = (list.messages || []).map((m) => m.id).filter((id) => !skip.has(id));
   const messages = await Promise.all(ids.map((id) => gmail(`/messages/${id}?format=full`)));
-  const orders = messages.map(parseOrder).filter(Boolean).sort((a, b) => b.when - a.when);
+  const oldest = Date.now() - ORDER_DAYS * 864e5;
+  const orders = messages.map(parseOrder).filter((o) => o && o.when >= oldest).sort((a, b) => b.when - a.when);
   cache = { at: Date.now(), orders };
   return orders;
 }
@@ -142,5 +151,6 @@ export async function unlinkGmail() {
   const token = await SecureStorage.getItem(TOKEN_KEY);
   await forget();
   await Preferences.remove({ key: SKIPPED_KEY });
+  await Preferences.remove({ key: ACCOUNT_KEY });
   if (token) await post("https://oauth2.googleapis.com/revoke", { token }).catch(() => {});
 }

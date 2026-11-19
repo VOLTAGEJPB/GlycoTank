@@ -208,7 +208,7 @@ async function requireAccount() {
   // A linked Gmail is checked on launch; a failure just shows nothing.
   if (gmailAvailable()) {
     gmailLinked().then((linked) => (linked ? gmailOrders() : [])).then((orders) => {
-      if (orders.length) toast(`${orders.length} new food ${orders.length === 1 ? "order" : "orders"} from Gmail. Open Log to add ${orders.length === 1 ? "it" : "them"}.`);
+      if (orders.length) toast(`${orders.length} new food ${orders.length === 1 ? "order" : "orders"} from Gmail. Review in More, then Email receipts.`);
     }).catch(() => {});
   }
   if (params.has("demo") && params.get("scroll")) document.querySelectorAll(".card")[+params.get("scroll")]?.scrollIntoView({ block: "start" });

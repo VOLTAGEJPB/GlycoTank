@@ -39,7 +39,12 @@ test("parses a delivery app email and names the restaurant", () => {
   const html = "<table><tr><td>2</td><td>Spicy Chicken Sandwich</td><td>$15.00</td></tr><tr><td>Subtotal</td><td>$15.00</td></tr></table>";
   const order = parseOrder(message("DoorDash <no-reply@doordash.com>", "Your receipt from Shake Shack", [{ mimeType: "text/html", body: { data: b64(html) } }]));
   assert.equal(order.merchant, "Shake Shack via DoorDash");
+  assert.equal(order.source, "DoorDash");
   assert.deepEqual(order.items, [{ name: "Spicy Chicken Sandwich", qty: 2 }]);
+});
+
+test("reads back 30 days when asked", () => {
+  assert.match(gmailQuery(30), /newer_than:30d/);
 });
 
 test("ignores other senders and emails with no food items", () => {

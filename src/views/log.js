@@ -2,8 +2,7 @@ import { localDate, plateMath, parseMealText, mealSlot, slotForHour, MEAL_SLOTS 
 import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
 import { loadFoods, searchFoods, portionsFor, nutritionFor, portionLabel, sumItems } from "../foods.js";
 import { photoEstimates, estimateFromPhoto } from "../photo.js";
-import { gmailAvailable, gmailLinked, linkGmail, gmailOrders, skipOrder, unlinkGmail } from "../gmail.js";
-import { matchFood } from "../gmail-parse.js";
+import { gmailAvailable, gmailLinked, gmailOrders } from "../gmail.js";
 import { uid } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 
@@ -88,8 +87,7 @@ function renderMeal(root, app) {
         <button type="button" class="btn ghost" id="addSheetCancel">Cancel</button>
       </dialog>
       <div id="scanResult" class="scan-result" hidden></div>
-      <div id="receiptPick" class="scan-result receipt-pick" hidden></div>
-      <div id="emailPick" class="scan-result receipt-pick" hidden></div>`}
+      <div id="receiptPick" class="scan-result receipt-pick" hidden></div>`}
       <div id="mealItems" class="meal-items" hidden></div>
       ${quick.length ? `<div class="label mt">Favorites &amp; recent</div>
       <div class="chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${q.fav ? "★ " : ""}${esc(q.name)}<small>${Math.round(q.kcal || 0)} kcal</small></button>`).join("")}</div>` : ""}
@@ -406,76 +404,7 @@ function renderMeal(root, app) {
     }
   };
 
-  // ----- Food order emails from a linked Gmail -----
-  const orderTime = (ms) => new Date(ms).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  const withFoods = async (orders) => {
-    const foods = await loadFoods();
-    return orders.map((o) => ({ ...o, items: o.items.map((it) => ({ ...it, match: matchFood(foods, it.name) })) }));
-  };
-  const showEmail = (orders) => {
-    const box = $("#emailPick");
-    $("#emailBanner").hidden = true;
-    box.hidden = false;
-    box.innerHTML = `
-      <div class="scan-head"><strong>Email receipts</strong><span>${orders.length ? "Tick what you ate. Nutrition is estimated." : "No new food orders in the last two weeks."}</span></div>
-      ${orders.map((o, n) => `
-      <div class="email-order">
-        <div class="email-order-head"><strong>${esc(o.merchant)}</strong><small>${esc(orderTime(o.when))}</small></div>
-        <ul class="receipt-list">${o.items.map((it, i) => `
-          <li><label class="receipt-item"><input type="checkbox" data-e="${n}-${i}" ${it.match ? "checked" : "disabled"}>
-            <span class="mi-name"><strong>${it.qty > 1 ? `${it.qty} × ` : ""}${esc(it.name)}</strong><small>${it.match ? `Closest match: ${esc(it.match.food)} · ${Math.round(it.match.kcal * it.qty)} kcal` : "No match. Add this one by hand."}</small></span></label>
-            ${it.match ? `<select data-eshare="${n}-${i}" aria-label="How much of ${esc(it.name)} you ate">${SHARES.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>` : ""}</li>`).join("")}</ul>
-        <div class="actions"><button type="button" class="btn primary" data-eadd="${n}">Add to meal</button><button type="button" class="btn ghost" data-eskip="${n}">Skip</button></div>
-      </div>`).join("")}
-      <div class="actions"><button type="button" class="btn ghost" id="emailClose">Close</button><button type="button" class="btn ghost" id="emailUnlink">Unlink Gmail</button></div>`;
-    const remove = async (n) => {
-      await skipOrder(orders[n].id);
-      showEmail(orders.filter((_, i) => i !== n));
-    };
-    $$("[data-eadd]", box).forEach((b) => b.addEventListener("click", async () => {
-      const n = +b.dataset.eadd;
-      let added = 0;
-      orders[n].items.forEach((it, i) => {
-        if (!it.match || !$(`[data-e="${n}-${i}"]`, box).checked) return;
-        const share = +$(`[data-eshare="${n}-${i}"]`, box).value;
-        const amount = it.qty * share;
-        const scaled = Object.fromEntries(Object.keys(ids).map((k) => [k, Math.round(it.match[k] * amount * 10) / 10]));
-        const label = share === 1 ? "" : `${SHARES.find(([v]) => v === share)[1].toLowerCase()} of `;
-        items.push({ name: it.name, short: it.name, ...scaled, kcal: Math.round(scaled.kcal), portion: `${label}${it.qty > 1 ? `${it.qty} × ` : ""}${it.match.portion}`, source: "email" });
-        added++;
-      });
-      if (!added) return toast("Tick at least one item");
-      photoNote = "";
-      refreshItems();
-      success(`Added ${added} ${added === 1 ? "item" : "items"}`);
-      await remove(n);
-    }));
-    $$("[data-eskip]", box).forEach((b) => b.addEventListener("click", () => remove(+b.dataset.eskip)));
-    $("#emailClose").addEventListener("click", () => (box.hidden = true));
-    $("#emailUnlink").addEventListener("click", async () => {
-      if (!(await confirmDialog("Unlink Gmail? GlycoTank will stop checking your email for food orders.", "Unlink"))) return;
-      await unlinkGmail();
-      box.hidden = true;
-      toast("Gmail unlinked");
-    });
-    box.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  };
-  const openEmail = async () => {
-    const btn = $("#scanReceipt");
-    try {
-      if (!(await gmailLinked())) {
-        const ok = await confirmDialog("GlycoTank will check your Gmail for food orders from restaurants and delivery apps. Your emails stay on this phone and aren't sent to our servers. You can unlink anytime.", "Link Gmail", false);
-        if (!ok) return;
-        await linkGmail();
-      }
-      busy(btn, true, "Checking…");
-      showEmail(await withFoods(await gmailOrders(true)));
-    } catch (err) {
-      report(err);
-    } finally {
-      busy(btn, false);
-    }
-  };
+  // ----- Food order emails: reviewed on More > Email receipts -----
   // Checks quietly each time this screen opens; a failure just shows nothing.
   if (!m && gmailAvailable()) {
     gmailLinked().then((linked) => (linked ? gmailOrders() : [])).then((orders) => {
@@ -483,7 +412,7 @@ function renderMeal(root, app) {
       if (!banner?.isConnected || !orders.length) return;
       banner.textContent = `${orders.length} new food ${orders.length === 1 ? "order" : "orders"} from Gmail. Review`;
       banner.hidden = false;
-      banner.onclick = openEmail;
+      banner.onclick = () => app.go("more", "receipts");
     }).catch(() => {});
   }
 
@@ -493,7 +422,7 @@ function renderMeal(root, app) {
     mealPhoto: { title: "Photo of your meal", hint: "We'll estimate the foods and their nutrition.", options: fromCamera(fromPhoto) },
     scanBarcode: { title: "Barcode", hint: "Find a packaged food by its barcode.", options: [["Scan barcode", startBarcodeScan], ["Type the number", typeBarcode]] },
     scanLabel: { title: "Nutrition label", hint: "We'll read the numbers from the label.", options: fromCamera(readLabel) },
-    scanReceipt: { title: "Restaurant receipt", hint: "Tick what you ate from the items on it.", options: [...fromCamera(readReceipt), ...(gmailAvailable() ? [["Email receipts", openEmail]] : [])] },
+    scanReceipt: { title: "Restaurant receipt", hint: "Tick what you ate from the items on it.", options: fromCamera(readReceipt) },
   };
   const sheet = $("#addSheet");
   Object.entries(SHEETS).forEach(([id, { title, hint, options }]) => {

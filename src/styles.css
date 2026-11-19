@@ -477,6 +477,16 @@ body.onboarding { overflow: hidden; }
 .email-order { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .email-order-head { display: flex; flex-direction: column; gap: 2px; }
 .email-order-head small { color: var(--muted); font-size: 13px; }
+.email-order:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.linked-row { display: flex; align-items: center; gap: 12px; }
+.linked-row .more-text { flex: 1; min-width: 0; }
+.linked-row .more-text span { overflow-wrap: anywhere; }
+.linked-row .btn { flex: none; }
+.email-companies { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.email-senders summary { cursor: pointer; color: var(--accent); font-size: 14px; font-weight: 600; padding: 6px 0; }
+.email-orders-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.email-orders-head h2 { margin: 0; }
+.email-slot { margin-top: 10px; }
 .add-sheet .hint { margin: 4px 0 14px; }
 .add-sheet-options { display: grid; gap: 8px; margin-bottom: 8px; }
 .add-sheet .btn { width: 100%; min-height: 50px; }

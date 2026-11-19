@@ -4,6 +4,7 @@ import * as auth from "../auth.js";
 import { renderSettings } from "./settings.js";
 import { renderHistory } from "./history.js";
 import { workoutDetail } from "./entries.js";
+import { renderReceipts } from "./receipts.js";
 
 const icon = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
 const ICONS = {
@@ -14,6 +15,7 @@ const ICONS = {
   history: "M13 3a9 9 0 1 1-8.5 12h2.1A7 7 0 1 0 6 9.5L8.5 12H3V6.5l1.6 1.6A9 9 0 0 1 13 3zm-1 5h2v4.6l3.2 1.9-1 1.7L12 13.7V8z",
   reminders: "M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z",
   data: "M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z",
+  receipts: "M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z",
   about: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z",
 };
 
@@ -22,6 +24,7 @@ const GROUPS = [
     ["profile", "Profile", "Your account, details and units"],
     ["goals", "Goals", "Calorie, protein, carb and fiber targets"],
     ["body", "Weight & measurements", "Track your weight, waist and more"],
+    ["receipts", "Email receipts", "Linked accounts and food orders"],
   ]],
   ["Training", [
     ["routines", "Workout routines", "Saved sessions you can start in one tap"],
@@ -57,6 +60,7 @@ export function renderMore(root, app) {
   if (section === "history") return renderHistory(body, app);
   if (section === "body") return renderBody(body, app);
   if (section === "routines") return renderRoutines(body, app);
+  if (section === "receipts") return renderReceipts(body, app);
   if (section === "profile") {
     body.innerHTML = `${profileCard(app)}<div id="settingsBody"></div>`;
     hookProfile(app);

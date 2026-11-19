@@ -29,6 +29,8 @@ const SENDERS = {
   "shakeshack.com": "Shake Shack",
   "fiveguys.com": "Five Guys",
 };
+// Company names shown on the Email receipts page.
+export const SENDER_NAMES = [...new Set(Object.values(SENDERS))];
 const DELIVERY_APPS = new Set(["DoorDash", "Uber Eats", "Grubhub", "Seamless", "Postmates"]);
 
 export function gmailQuery(days = 14) {
@@ -111,7 +113,7 @@ function bodies(part, found = { plain: "", html: "" }) {
   return found;
 }
 
-// A Gmail API message (format=full) -> { id, merchant, when, items }, or null if
+// A Gmail API message (format=full) -> { id, merchant, source, when, items }, or null if
 // no food items could be read from it.
 export function parseOrder(message) {
   const header = (name) => message.payload?.headers?.find((h) => h.name.toLowerCase() === name)?.value || "";
@@ -121,7 +123,7 @@ export function parseOrder(message) {
   const fromPlain = parseItems(plain);
   const fromHtml = parseItems(htmlToText(html));
   const items = fromHtml.length > fromPlain.length ? fromHtml : fromPlain;
-  return items.length ? { id: message.id, merchant, when: +message.internalDate || Date.parse(header("date")) || 0, items } : null;
+  return items.length ? { id: message.id, merchant, source: senderName(header("from")), when: +message.internalDate || Date.parse(header("date")) || 0, items } : null;
 }
 
 // Menu names the food list doesn't know, mapped to the closest everyday food.
