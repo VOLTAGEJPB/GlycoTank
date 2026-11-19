@@ -73,3 +73,12 @@ test("sizes fast food sides and drinks like a restaurant serves them", () => {
   assert.ok(matchFood(foods, "Large Diet Coke").kcal < 30);
   assert.match(matchFood(foods, "Egg McMuffin").food, /^egg/i);
 });
+
+test("menu names match the dish, not the filling after the dash", () => {
+  const burrito = matchFood(foods, "Grilled Cheese Burrito - Seasoned Beef");
+  assert.match(burrito.food, /^burrito, beef/i);
+  assert.doesNotMatch(burrito.portion, /cup/);
+  assert.ok(burrito.kcal > 400, `burrito: ${burrito.kcal}`);
+  assert.match(matchFood(foods, "Burrito Bowl - Chicken").food, /^burrito bowl, chicken/i);
+  assert.match(matchFood(foods, "Chicken Quesadilla").portion, /full/);
+});

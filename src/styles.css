@@ -550,6 +550,26 @@ body.onboarding { overflow: hidden; }
 .email-order { animation: rise 0.4s var(--ease) both; animation-delay: calc(var(--i) * 80ms); }
 .email-order.leaving { animation: none; transition: opacity 0.35s, transform 0.35s var(--ease); opacity: 0; transform: translateX(-24px); }
 .email-order.leaving.added { transform: translateY(-10px) scale(0.97); }
+.receipt-list li { flex-wrap: wrap; }
+.item-change {
+  flex: none; min-height: 36px; padding: 4px 10px; border: 1px solid var(--line); border-radius: 999px;
+  background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.item-change[aria-expanded="true"] { border-color: var(--accent); }
+.receipt-list li.item-pick { display: grid; gap: 8px; padding: 10px 0 12px; border-top: 0; animation: rise 0.3s var(--ease) both; }
+.item-pick input[type="search"] { width: 100%; }
+.pick-results { display: grid; gap: 6px; }
+.pick-results .hint { margin: 0; }
+.pick-results .pick-food {
+  display: grid; justify-items: start; gap: 2px; width: 100%; padding: 8px 12px; text-align: left;
+  background: var(--field); border: 1px solid var(--line); border-radius: 12px; color: var(--text); font: inherit; cursor: pointer;
+}
+.pick-food span { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.pick-food small { color: var(--muted); font-size: 12px; }
+.pick-food:active { border-color: var(--accent); }
+.pick-own { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.pick-own div { display: flex; gap: 8px; }
+.pick-own input { flex: 1; min-width: 0; }
 .add-sheet .hint { margin: 4px 0 14px; }
 .add-sheet-options { display: grid; gap: 8px; margin-bottom: 8px; }
 .add-sheet .btn { width: 100%; min-height: 50px; }

@@ -3,9 +3,9 @@
 // placed, in the meal that fits the time it was placed.
 
 import { localDate, slotForHour, MEAL_SLOTS } from "../model.js";
-import { loadFoods } from "../foods.js";
+import { loadFoods, searchFoods } from "../foods.js";
 import { gmailAvailable, gmailLinked, gmailAccount, linkGmail, gmailOrders, skipOrder, unlinkGmail, ORDER_DAYS } from "../gmail.js";
-import { matchFood, SENDER_NAMES } from "../gmail-parse.js";
+import { matchFood, matchRow, SENDER_NAMES } from "../gmail-parse.js";
 import { ScanError } from "../scan.js";
 import { uid } from "../store.js";
 import { haptic } from "../motion.js";
@@ -118,7 +118,7 @@ async function load(root, app, fresh) {
     if (!root.isConnected) return;
     const withFoods = orders.map((o) => ({ ...o, items: o.items.map((it) => ({ ...it, match: matchFood(foods, it.name) })) }));
     showCompanies(withFoods);
-    showOrders(root, app, withFoods);
+    showOrders(root, app, withFoods, foods);
   } catch (err) {
     if (!root.isConnected) return;
     // An expired link is cleared by gmail.js, so show the link screen again.
@@ -153,7 +153,31 @@ function showCompanies(orders) {
   $("#rFound").textContent = counts.size ? `${counts.size} with new orders` : `No new orders in ${ORDER_DAYS} days`;
 }
 
-function showOrders(root, app, orders) {
+// One ordered item: tick it, say how much you ate, or change what it's matched to.
+function itemRow(n, i, it) {
+  const m = it.match;
+  const what = m ? `${m.custom ? "Your calories" : `Closest match: ${esc(m.food)}`} · ${Math.round(m.kcal * it.qty)} kcal` : "No match yet. Tap Find to pick a food.";
+  return `
+    <li data-item="${n}-${i}"><label class="receipt-item"><input type="checkbox" data-e="${n}-${i}" ${m ? "checked" : "disabled"}>
+      <span class="mi-name"><strong>${it.qty > 1 ? `${it.qty} × ` : ""}${esc(it.name)}</strong><small>${what}</small></span></label>
+      ${m ? `<select data-eshare="${n}-${i}" aria-label="How much of ${esc(it.name)} you ate">${SHARES.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>` : ""}
+      <button type="button" class="item-change" data-echange="${n}-${i}" aria-expanded="false">${m ? "Change" : "Find"}</button>
+    </li>`;
+}
+
+// Search the food list, or type in the calories from the restaurant's menu.
+function pickerFor(n, i, it) {
+  const dish = String(it.name).split(/\s+[-–—]\s+|:\s+/)[0];
+  return `
+    <li class="item-pick" data-pick="${n}-${i}">
+      <input type="search" data-pq="${n}-${i}" value="${esc(dish)}" placeholder="Search foods" aria-label="Search foods for ${esc(it.name)}" enterkeyhint="search">
+      <div class="pick-results" data-pr="${n}-${i}"></div>
+      <div class="pick-own"><span>Know the calories? Check the restaurant's menu.</span>
+        <div><input type="number" inputmode="numeric" min="1" max="5000" data-pown="${n}-${i}" placeholder="kcal" aria-label="Calories for one ${esc(it.name)}"><button type="button" class="btn ghost small" data-puse="${n}-${i}">Use</button></div></div>
+    </li>`;
+}
+
+function showOrders(root, app, orders, foods) {
   const box = $("#rOrders");
   const today = localDate();
   if (!orders.length) {
@@ -166,10 +190,7 @@ function showOrders(root, app, orders) {
     return `
     <div class="email-order" style="--i:${n}">
       <div class="email-order-head"><strong>${esc(o.merchant)}</strong><small>${esc(prettyDate(localDate(when), today))} at ${esc(timeOf(o.when))}</small></div>
-      <ul class="receipt-list">${o.items.map((it, i) => `
-        <li><label class="receipt-item"><input type="checkbox" data-e="${n}-${i}" ${it.match ? "checked" : "disabled"}>
-          <span class="mi-name"><strong>${it.qty > 1 ? `${it.qty} × ` : ""}${esc(it.name)}</strong><small>${it.match ? `Closest match: ${esc(it.match.food)} · ${Math.round(it.match.kcal * it.qty)} kcal` : "No match. Add this one by hand."}</small></span></label>
-          ${it.match ? `<select data-eshare="${n}-${i}" aria-label="How much of ${esc(it.name)} you ate">${SHARES.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select>` : ""}</li>`).join("")}</ul>
+      <ul class="receipt-list">${o.items.map((it, i) => itemRow(n, i, it)).join("")}</ul>
       <label class="field email-slot"><span>Log to ${esc(prettyDate(localDate(when), today))}</span>
         <select data-eslot="${n}">${MEAL_SLOTS.map(([k, l]) => `<option value="${k}" ${k === slot ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <div class="actions"><button type="button" class="btn primary" data-eadd="${n}">Add to log</button><button type="button" class="btn ghost" data-eskip="${n}">Skip</button></div>
@@ -185,7 +206,7 @@ function showOrders(root, app, orders) {
       if (!box.isConnected) return;
       const rest = orders.filter((_, i) => i !== n);
       showCompanies(rest);
-      showOrders(root, app, rest);
+      showOrders(root, app, rest, foods);
     }, card ? 380 : 0);
   };
 
@@ -212,4 +233,63 @@ function showOrders(root, app, orders) {
     await done(n, true);
   }));
   $$("[data-eskip]", box).forEach((b) => b.addEventListener("click", () => done(+b.dataset.eskip, false)));
+
+  // Changing a match swaps just that item's row, so other choices stay as they are.
+  const itemOf = (key) => { const [n, i] = key.split("-").map(Number); return [n, i, orders[n].items[i]]; };
+  const closePick = (key) => {
+    $(`[data-pick="${key}"]`, box)?.remove();
+    $(`[data-echange="${key}"]`, box)?.setAttribute("aria-expanded", "false");
+  };
+  const results = new Map();
+  const showResults = (key) => {
+    const q = $(`[data-pq="${key}"]`, box).value.trim();
+    // "Grilled Cheese Burrito" finds nothing, so drop words from the front until something matches.
+    const words = q.split(/\s+/).filter(Boolean);
+    let rows = [];
+    for (let k = 0; k < words.length && !rows.length; k++) rows = searchFoods(foods, words.slice(k).join(" "), 6);
+    // Nothing by that name? Show foods like the current match, e.g. other gordita fillings.
+    const like = itemOf(key)[2].match;
+    if (!rows.length && like && !like.custom && words.length) rows = searchFoods(foods, like.food.split(",")[0], 6);
+    results.set(key, rows);
+    $(`[data-pr="${key}"]`, box).innerHTML = rows.length
+      ? rows.map((row, r) => { const m = matchRow(row); return `<button type="button" class="pick-food" data-prow="${key}" data-r="${r}"><span>${esc(m.food)}</span><small>${esc(m.portion)} · ${m.kcal} kcal</small></button>`; }).join("")
+      : `<p class="hint">${q ? "No foods found. Try a simpler word, like burrito." : "Type a food to search."}</p>`;
+  };
+  const setMatch = (key, match) => {
+    const [n, i, it] = itemOf(key);
+    it.match = match;
+    closePick(key);
+    const li = $(`[data-item="${key}"]`, box);
+    li.insertAdjacentHTML("afterend", itemRow(n, i, it));
+    li.remove();
+    haptic.tap();
+  };
+  box.onclick = (e) => {
+    const change = e.target.closest("[data-echange]");
+    if (change) {
+      const key = change.dataset.echange;
+      if ($(`[data-pick="${key}"]`, box)) return closePick(key);
+      $$(".item-pick", box).forEach((p) => closePick(p.dataset.pick));
+      const [n, i, it] = itemOf(key);
+      $(`[data-item="${key}"]`, box).insertAdjacentHTML("afterend", pickerFor(n, i, it));
+      change.setAttribute("aria-expanded", "true");
+      showResults(key);
+      return;
+    }
+    const pick = e.target.closest("[data-prow]");
+    if (pick) return setMatch(pick.dataset.prow, matchRow(results.get(pick.dataset.prow)[+pick.dataset.r]));
+    const use = e.target.closest("[data-puse]");
+    if (use) {
+      const kcal = Math.round(+$(`[data-pown="${use.dataset.puse}"]`, box).value);
+      if (!(kcal > 0 && kcal <= 5000)) return toast("Type the calories for one, like 690");
+      setMatch(use.dataset.puse, { food: "Your calories", portion: "1 item", kcal, carbs: 0, protein: 0, fat: 0, fiber: 0, custom: true });
+    }
+  };
+  let typing;
+  box.oninput = (e) => {
+    const key = e.target.dataset?.pq;
+    if (!key) return;
+    clearTimeout(typing);
+    typing = setTimeout(() => box.isConnected && $(`[data-pq="${key}"]`, box) && showResults(key), 150);
+  };
 }

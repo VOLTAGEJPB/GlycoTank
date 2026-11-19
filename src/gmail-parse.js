@@ -140,28 +140,49 @@ const ALIASES = [
   [/\b(diet|zero)\b.*\b(coke|coca-cola|pepsi|sprite)\b|\b(coke|coca-cola|pepsi|sprite)\b.*\b(diet|zero)\b/i, "soft drink cola diet", SODA],
   [/\b(coke|coca-cola|pepsi|sprite)\b/i, "soft drink cola", SODA],
   [/frappuccino|latte/i, "latte"],
-  [/burrito bowl/i, "burrito"],
+  [/burrito bowl/i, "burrito bowl"],
+  [/chalupa|gordita/i, "gordita"],
+  [/crunchwrap/i, "burrito"],
 ];
 const SIZE_WORDS = /\b(small|medium|large|regular|kids?|classic|original|signature|meal|combo|pc|piece)\b|\(.*?\)|\d+/gi;
+
+// Words that describe a menu item but don't change what food it is.
+const FILLER = /\b(seasoned|supreme|deluxe|loaded|fiesta|famous|signature|classic|original|special|ultimate|new|the|with|and|&)\b/gi;
+// "Burrito - Seasoned Beef": the part after the dash is usually the filling.
+const FILLINGS = { beef: "beef", steak: "beef", barbacoa: "beef", chicken: "chicken", pork: "pork", carnitas: "pork", bean: "beans", beans: "beans", egg: "egg", fish: "fish", shrimp: "shrimp" };
+// A portion you count (one burrito, one order) beats a measured one (a cup).
+const ONE_SERVING = /\b(item|any size|full circle|small\/regular|order|sandwich|burger|enchilada|each|whole)\b/i;
+
+// One food from the list with nutrition for its usual single serving.
+export function matchRow(row) {
+  const [portion, grams] = row[6].find(([p]) => ONE_SERVING.test(p)) || row[6][0] || ["100 g", 100];
+  return { food: row[0], portion, ...nutritionFor(row, grams) };
+}
 
 // The closest food in the built-in list, with nutrition for its usual portion.
 export function matchFood(foods, name) {
   const [, alias, sizes] = ALIASES.find(([re]) => re.test(name)) || [];
-  const words = String(name).replace(SIZE_WORDS, " ").replace(/[^\p{L}\s'-]/gu, " ").split(/\s+/).filter(Boolean);
-  const last = words[words.length - 1] || "";
-  const tries = [alias, words.join(" "), words.length > 2 ? words.slice(-2).join(" ") : ""];
+  const clean = (s) => String(s).replace(SIZE_WORDS, " ").replace(FILLER, " ").replace(/[^\p{L}\s'-]/gu, " ").split(/\s+/).filter((w) => w && w !== "-");
+  const [dishName, ...rest] = String(name).split(/\s+[-–—]\s+|:\s+/);
+  const dish = clean(dishName);
+  const fill = [...new Set(clean(rest.join(" ")).map((w) => FILLINGS[w.toLowerCase()]).filter(Boolean))].join(" ");
+  const last = dish[dish.length - 1] || "";
+  // The dish itself first, with its filling when the list has that version.
+  const bases = [alias, dish.join(" "), dish.length > 2 ? dish.slice(-2).join(" ") : "", dish.length > 1 ? dish.slice(-2).join(" ") : ""];
+  const tries = [...new Set(bases.filter(Boolean).flatMap((b) => (fill ? [`${b} ${fill}`, b] : [b])))];
   let row = null;
-  for (const q of tries) row ||= q ? searchFoods(foods, q, 1)[0] : null;
+  for (const q of tries) row ||= searchFoods(foods, q, 1)[0] || null;
   // Last resort: "Zzqx Burrito" is a burrito, but only if the food is named for that word.
   if (!row && last.length >= 4) {
-    const hit = searchFoods(foods, last, 1)[0];
-    if (hit?.[0].toLowerCase().startsWith(last.toLowerCase().replace(/s$/, ""))) row = hit;
+    for (const q of fill ? [`${last} ${fill}`, last] : [last]) {
+      const hit = searchFoods(foods, q, 1)[0];
+      if (!row && hit?.[0].toLowerCase().startsWith(last.toLowerCase().replace(/s$/, ""))) row = hit;
+    }
   }
   if (!row) return null;
   if (sizes) {
     const size = String(name).match(/\b(small|medium|large)\b/i)?.[1]?.toLowerCase() || "medium";
     return { food: row[0], portion: size, ...nutritionFor(row, sizes[size]) };
   }
-  const [portion, grams] = row[6][0] || ["100 g", 100];
-  return { food: row[0], portion, ...nutritionFor(row, grams) };
+  return matchRow(row);
 }
