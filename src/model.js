@@ -174,6 +174,32 @@ export function weekLog(state, today) {
   });
 }
 
+// Every day of the month that `month` ("YYYY-MM") names, with meal counts and
+// calories, plus how many blank cells come before the 1st in a Sunday-first grid.
+export function monthLog(state, month, today) {
+  const [y, m] = month.split("-").map(Number);
+  const length = new Date(y, m, 0).getDate();
+  const byDate = new Map();
+  for (const meal of state.meals) {
+    if (!meal.date?.startsWith(month)) continue;
+    const d = byDate.get(meal.date) || { meals: 0, kcal: 0 };
+    d.meals++;
+    d.kcal += +meal.kcal || 0;
+    byDate.set(meal.date, d);
+  }
+  const days = Array.from({ length }, (_, i) => {
+    const date = `${month}-${String(i + 1).padStart(2, "0")}`;
+    return { date, day: i + 1, meals: 0, kcal: 0, ...byDate.get(date), future: date > today };
+  });
+  return { lead: new Date(y, m - 1, 1).getDay(), days };
+}
+
+export function shiftMonth(month, by) {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(y, m - 1 + by, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
 // ---- Weight & measurements ----
 // One entry per date; logging again on the same day updates that entry.
 export function upsertMeasurement(list, entry) {

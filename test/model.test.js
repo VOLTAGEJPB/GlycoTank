@@ -305,3 +305,15 @@ test("measurements keep one entry per day, merged and sorted", () => {
   list = upsertMeasurement(list, { date: "2026-10-10", waist: 33.5, weight: "" });
   assert.deepEqual(list, [{ date: "2026-10-03", weight: 187, waist: 34 }, { date: "2026-10-10", weight: 185, waist: 33.5 }]);
 });
+
+test("monthLog lays out a month with meal counts and calories", async () => {
+  const { monthLog, shiftMonth } = await import("../src/model.js");
+  const state = { meals: [{ date: "2026-11-03", kcal: 500 }, { date: "2026-11-03", kcal: 700 }, { date: "2026-10-31", kcal: 900 }] };
+  const { lead, days } = monthLog(state, "2026-11", "2026-11-19");
+  assert.equal(lead, 0); // November 1, 2026 is a Sunday
+  assert.equal(days.length, 30);
+  assert.deepEqual([days[2].meals, days[2].kcal], [2, 1200]);
+  assert.equal(days[19].future, true);
+  assert.equal(shiftMonth("2026-01", -1), "2025-12");
+  assert.equal(shiftMonth("2026-12", 1), "2027-01");
+});

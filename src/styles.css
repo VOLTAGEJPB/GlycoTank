@@ -478,15 +478,78 @@ body.onboarding { overflow: hidden; }
 .email-order-head { display: flex; flex-direction: column; gap: 2px; }
 .email-order-head small { color: var(--muted); font-size: 13px; }
 .email-order:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
-.linked-row { display: flex; align-items: center; gap: 12px; }
-.linked-row .more-text { flex: 1; min-width: 0; }
-.linked-row .more-text span { overflow-wrap: anywhere; }
-.linked-row .btn { flex: none; }
-.email-companies { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-.email-senders summary { cursor: pointer; color: var(--accent); font-size: 14px; font-weight: 600; padding: 6px 0; }
-.email-orders-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.email-orders-head h2 { margin: 0; }
 .email-slot { margin-top: 10px; }
+/* Email receipts: how linking works, accounts and companies */
+.link-hero { display: flex; align-items: center; gap: 10px; margin: 2px 0 16px; }
+.lh-node {
+  flex: none; width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center;
+  background: var(--field); border: 1px solid var(--line); color: var(--accent);
+}
+.lh-node svg { width: 26px; height: 26px; fill: currentColor; }
+.lh-app { background: #17271f; border-color: #2c4a3c; }
+.link-hero.moving .lh-app { animation: lh-catch 3.9s ease-in-out infinite; }
+.lh-track {
+  position: relative; flex: 1; height: 52px; overflow: hidden;
+  background: linear-gradient(90deg, var(--line) 50%, transparent 0) center / 10px 2px repeat-x;
+}
+.lh-chip {
+  position: absolute; top: 50%; left: 0; padding: 5px 10px; border-radius: 999px; white-space: nowrap;
+  background: var(--card); border: 1px solid #2c4a3c; color: var(--text); font-size: 12px; font-weight: 700;
+  opacity: 0; transform: translate(0, -50%);
+}
+.link-hero.moving .lh-chip { animation: lh-travel 3.9s cubic-bezier(0.45, 0, 0.25, 1) infinite; animation-delay: var(--d); }
+@keyframes lh-travel {
+  0% { left: 0; transform: translate(-20%, -50%) scale(0.8); opacity: 0; }
+  12% { opacity: 1; transform: translate(0, -50%) scale(1); }
+  70% { opacity: 1; }
+  88%, 100% { left: 100%; transform: translate(-60%, -50%) scale(0.6); opacity: 0; }
+}
+@keyframes lh-catch { 0%, 72%, 100% { transform: none; } 80% { transform: scale(1.08); border-color: var(--accent); } }
+.link-card h2 { margin-bottom: 10px; }
+.link-steps { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 10px; }
+.link-steps li { display: flex; align-items: center; gap: 12px; font-size: 15px; animation: rise 0.45s var(--ease) both; animation-delay: calc(var(--i) * 140ms + 150ms); }
+.link-steps li span {
+  flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  background: #17271f; border: 1px solid #2c4a3c; color: var(--accent); font-size: 13px; font-weight: 800;
+}
+.link-note { margin: 12px 0 0; }
+
+.account-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); animation: rise 0.4s var(--ease) both; animation-delay: calc(var(--i) * 70ms); }
+.account-row:first-of-type { border-top: 0; padding-top: 0; }
+.account-row .more-text { flex: 1; min-width: 0; }
+.account-row .more-text span { overflow-wrap: anywhere; }
+.account-row .btn { flex: none; }
+.account-row .more-icon { position: relative; }
+.linked-badge {
+  position: absolute; right: -5px; bottom: -5px; width: 18px; height: 18px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--accent); border: 2px solid var(--card);
+}
+.linked-badge svg { width: 11px; height: 11px; fill: var(--accent-ink); }
+.account-row.just .linked-badge { animation: check-pop 0.5s var(--ease) 0.25s both; }
+.account-row.just .more-icon { animation: lh-ring 1.2s ease-out 0.2s; }
+@keyframes lh-ring { from { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent); } to { box-shadow: 0 0 0 14px transparent; } }
+
+.co-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 12px 6px; }
+.co { display: grid; justify-items: center; gap: 6px; text-align: center; animation: cal-pop 0.4s var(--ease) both; animation-delay: calc(var(--i) * 25ms); }
+.co-badge {
+  position: relative; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+  background: var(--field); border: 1px solid var(--line); color: var(--muted); font-size: 14px; font-weight: 800;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
+}
+.co-name { font-size: 11px; line-height: 1.2; color: var(--muted); }
+.co.found .co-badge { background: hsl(var(--h) 45% 22%); border-color: hsl(var(--h) 55% 45%); color: hsl(var(--h) 80% 85%); }
+.co.found .co-name { color: var(--text); font-weight: 700; }
+.co-badge b {
+  position: absolute; top: -6px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px;
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-size: 11px; border: 2px solid var(--card);
+}
+.co.found .co-badge b { animation: check-pop 0.45s var(--ease) both; animation-delay: calc(var(--i) * 25ms + 250ms); }
+.co-grid.scanning .co { animation: co-scan 1.6s ease-in-out infinite; animation-delay: calc(var(--i) * 60ms); }
+@keyframes co-scan { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+.email-order { animation: rise 0.4s var(--ease) both; animation-delay: calc(var(--i) * 80ms); }
+.email-order.leaving { animation: none; transition: opacity 0.35s, transform 0.35s var(--ease); opacity: 0; transform: translateX(-24px); }
+.email-order.leaving.added { transform: translateY(-10px) scale(0.97); }
 .add-sheet .hint { margin: 4px 0 14px; }
 .add-sheet-options { display: grid; gap: 8px; margin-bottom: 8px; }
 .add-sheet .btn { width: 100%; min-height: 50px; }
@@ -562,6 +625,59 @@ body.onboarding { overflow: hidden; }
 .wday.today:not(.done) .wdot { border-color: var(--accent); }
 .wday.future .wdot { opacity: 0.45; }
 .streak-line { margin: 8px 0 0; }
+/* Week card grows into a month calendar */
+.week { overflow: hidden; }
+.week-sum { margin: 0 0 6px; }
+.cal-toggle {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 4px 12px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--field);
+  color: var(--accent); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.cal-toggle svg { width: 16px; height: 16px; fill: currentColor; transition: transform 0.35s var(--ease); }
+.cal-toggle.open { border-color: var(--accent); }
+.cal-toggle.open svg { transform: rotate(-8deg) scale(1.1); }
+.cal-toggle:active { transform: scale(0.96); }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+.cal-arrow {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: none;
+  color: var(--text, #e6e9ef); font-size: 22px; line-height: 1; cursor: pointer;
+}
+.cal-arrow:disabled { opacity: 0.3; cursor: default; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px 4px; margin-bottom: 12px; text-align: center; }
+.cal-grid .wl { padding-bottom: 2px; }
+.cday { display: grid; place-items: center; }
+.cday span {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  border: 2px solid var(--line); font-size: 13px; font-weight: 700; color: var(--muted);
+}
+.cday.done span { color: var(--accent-ink); border-color: transparent; }
+.cday.on span { background: var(--accent); }
+.cday.under span { background: color-mix(in srgb, var(--accent) 45%, var(--card)); color: var(--text); }
+.cday.over span { background: var(--warn); }
+.cday.today span { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--accent); }
+.cday.today:not(.done) span { color: var(--accent); border-color: var(--accent); box-shadow: none; }
+.cday.future span { opacity: 0.35; }
+.cal-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.cal-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.cal-legend .on { background: var(--accent); }
+.cal-legend .under { background: color-mix(in srgb, var(--accent) 45%, var(--card)); }
+.cal-legend .over { background: var(--warn); }
+
+/* Opening: days pop in row by row. Closing and paging slide in. */
+.week.cal-in .cday { animation: cal-pop 0.42s var(--ease) both; animation-delay: calc(var(--i) * 12ms + 60ms); }
+.week.cal-in .cal-nav, .week.cal-in .cal-legend, .week.cal-in .cal-grid .wl { animation: rise 0.35s var(--ease) both; }
+.week.cal-out .wday { animation: cal-pop 0.38s var(--ease) both; }
+.week.cal-out .wday:nth-child(2) { animation-delay: 30ms; }
+.week.cal-out .wday:nth-child(3) { animation-delay: 60ms; }
+.week.cal-out .wday:nth-child(4) { animation-delay: 90ms; }
+.week.cal-out .wday:nth-child(5) { animation-delay: 120ms; }
+.week.cal-out .wday:nth-child(6) { animation-delay: 150ms; }
+.week.cal-out .wday:nth-child(7) { animation-delay: 180ms; }
+.week.cal-prev .cal-grid { animation: slide-from-left 0.32s var(--ease); }
+.week.cal-next .cal-grid { animation: slide-from-right 0.32s var(--ease); }
+@keyframes cal-pop { from { opacity: 0; transform: scale(0.5); } 70% { transform: scale(1.08); } to { opacity: 1; transform: none; } }
 .slot .card-head { margin-bottom: 4px; }
 .slot .entries { margin-bottom: 4px; }
 .add-food {
