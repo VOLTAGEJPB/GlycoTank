@@ -30,7 +30,48 @@ const stems = (w) => [w, w.replace(/ies$/, "y"), w.replace(/es$/, ""), w.replace
 // Every typed word has to start some word of the food's name. Foods whose name
 // starts with what was typed, and shorter, plainer names, rank first, so
 // "cream cheese" puts "Cream cheese, regular, plain" above "Cheese spread, cream cheese".
+// Menu names the USDA list doesn't carry, mapped to its closest food.
+// Each key is the name squashed to letters, so "Mc Chicken" and "mcchicken" both work.
+export const MENU_ITEMS = [
+  ["mcchicken", "McChicken", "chicken fillet sandwich fried fast food"],
+  ["mccrispy", "McCrispy", "chicken fillet sandwich fried fast food"],
+  ["chickfila", "Chick-fil-A sandwich", "chicken fillet sandwich fried fast food"],
+  ["chickensandwich", "Chicken sandwich", "chicken fillet sandwich fried fast food"],
+  ["mcnugget", "McNuggets", "chicken nuggets fast food"],
+  ["filetofish", "Filet-O-Fish", "fish sandwich fried fast food"],
+  ["fishfillet", "Filet-O-Fish", "fish sandwich fried fast food"],
+  ["mcmuffin", "McMuffin", "egg sandwich english muffin"],
+  ["mcgriddle", "McGriddle", "egg cheese sausage"],
+  ["hashbrown", "Hash brown", "potato hash brown fast food"],
+  ["mcflurry", "McFlurry", "ice cream sundae"],
+  ["blizzard", "Blizzard", "ice cream sundae"],
+  ["frosty", "Frosty", "milk shake fast food"],
+  ["crunchwrap", "Crunchwrap", "burrito"],
+  ["chalupa", "Chalupa", "gordita"],
+  ["baconator", "Baconator", "cheeseburger fast food large patty"],
+];
+const squash = (s) => String(s).toLowerCase().replace(/[^a-z]/g, "");
+
+// The menu item a search is for, if it's one the food list only has under a plain name.
+export function menuItemFor(query) {
+  const q = squash(query);
+  if (q.length < 4) return null;
+  const hit = MENU_ITEMS.find(([key]) => key.startsWith(q) || q.startsWith(key));
+  return hit ? { name: hit[1], query: hit[2] } : null;
+}
+
 export function searchFoods(list, query, limit = 25) {
+  // "McChicken" isn't in the list, so show the closest plain foods first.
+  const menu = menuItemFor(query);
+  if (menu) {
+    const close = plainSearch(list, menu.query, limit);
+    const own = plainSearch(list, query, limit).filter((r) => !close.includes(r));
+    return [...close, ...own].slice(0, limit);
+  }
+  return plainSearch(list, query, limit);
+}
+
+function plainSearch(list, query, limit) {
   const q = words(query);
   if (!q.length) return [];
   const found = [];

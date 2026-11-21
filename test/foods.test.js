@@ -28,3 +28,11 @@ test("portions and nutrition", () => {
   assert.equal(portionLabel("1 sandwich", 2), "2 sandwiches");
   assert.deepEqual(sumItems([{ kcal: 277, carbs: 55 }, { kcal: 50.4, carbs: 0.6, protein: 1 }]), { kcal: 327, carbs: 55.6, protein: 1, fat: 0, fiber: 0 });
 });
+
+test("fast food menu names find the closest plain food", () => {
+  assert.match(top("mcchicken")[0], /^chicken fillet sandwich, fried, from fast food/i);
+  assert.match(top("Mc Chicken")[0], /^chicken fillet sandwich/i);
+  assert.match(top("mcmuffin")[0], /^egg sandwich on english muffin/i);
+  assert.match(top("big mac")[0], /big mac/i);
+  assert.match(top("banana")[0], /^banana, raw/i);
+});

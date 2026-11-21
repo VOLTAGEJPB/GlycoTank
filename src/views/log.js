@@ -1,6 +1,6 @@
 import { localDate, plateMath, parseMealText, mealSlot, slotForHour, MEAL_SLOTS } from "../model.js";
 import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
-import { loadFoods, searchFoods, portionsFor, nutritionFor, portionLabel, sumItems } from "../foods.js";
+import { loadFoods, searchFoods, menuItemFor, portionsFor, nutritionFor, portionLabel, sumItems } from "../foods.js";
 import { photoEstimates, estimateFromPhoto } from "../photo.js";
 import { gmailAvailable, gmailLinked, gmailOrders } from "../gmail.js";
 import { uid } from "../store.js";
@@ -175,12 +175,13 @@ function renderMeal(root, app) {
     if (foodQ.value.trim() !== text) return; // the user kept typing
     const rows = searchFoods(foodList, text, 15);
     ul.hidden = false;
-    ul.innerHTML = rows.length
+    const menu = rows.length ? menuItemFor(text) : null;
+    ul.innerHTML = (menu ? `<li class="hint">The food list doesn't have the ${esc(menu.name)} by name. These are the closest. For exact calories, check the restaurant's menu and enter them below.</li>` : "") + (rows.length
       ? rows.map((r, i) => {
           const [desc, grams] = portionsFor(r)[0];
           return `<li><button data-food="${i}"><strong>${esc(r[0])}</strong><small>${nutritionFor(r, grams).kcal} kcal · ${esc(desc)}</small></button></li>`;
         }).join("")
-      : `<li class="hint">No matches. Try a simpler word, or enter the numbers below.</li>`;
+      : `<li class="hint">No matches. Try a simpler word, or enter the numbers below.</li>`);
     $$("[data-food]", ul).forEach((b) => b.addEventListener("click", () => pickFood(rows[b.dataset.food])));
   };
   foodQ.addEventListener("input", () => {
