@@ -38,6 +38,9 @@ jobs:
           npm test
 
       - name: Build web app and sync into iOS
+        env:
+          # Tags ending in -store build the App Store version (no Email receipts yet).
+          VITE_STORE: ${{ endsWith(github.ref_name, '-store') && '1' || '' }}
         run: |
           npm run build
           npx cap sync ios

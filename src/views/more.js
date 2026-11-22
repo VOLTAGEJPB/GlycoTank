@@ -5,6 +5,7 @@ import { renderSettings } from "./settings.js";
 import { renderHistory } from "./history.js";
 import { workoutDetail } from "./entries.js";
 import { renderReceipts } from "./receipts.js";
+import { gmailInThisBuild } from "../gmail.js";
 
 const icon = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
 const ICONS = {
@@ -24,7 +25,7 @@ const GROUPS = [
     ["profile", "Profile", "Your account, details and units"],
     ["goals", "Goals", "Calorie, protein, carb and fiber targets"],
     ["body", "Weight & measurements", "Track your weight, waist and more"],
-    ["receipts", "Email receipts", "Linked accounts and food orders"],
+    ...(gmailInThisBuild ? [["receipts", "Email receipts", "Linked accounts and food orders"]] : []),
   ]],
   ["Training", [
     ["routines", "Workout routines", "Saved sessions you can start in one tap"],

@@ -24,7 +24,10 @@ const REDIRECT = `${GMAIL_CLIENT_ID.split(".").reverse().join(".")}:/oauth2redir
 let access = null; // { token, expires }, kept in memory only
 let cache = null; // { at, orders }
 
-export const gmailAvailable = () => Capacitor.getPlatform() === "ios" && !!GMAIL_CLIENT_ID;
+// App Store builds (tags ending in -store) leave Email receipts out until Google
+// verifies GlycoTank for Gmail; TestFlight builds keep it.
+export const gmailInThisBuild = import.meta.env?.VITE_STORE !== "1";
+export const gmailAvailable = () => gmailInThisBuild && Capacitor.getPlatform() === "ios" && !!GMAIL_CLIENT_ID;
 export const gmailLinked = async () => !!(await SecureStorage.getItem(TOKEN_KEY));
 
 const b64url = (bytes) => btoa(String.fromCharCode(...new Uint8Array(bytes))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
