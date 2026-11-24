@@ -250,6 +250,13 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin: 0; padding: 0; }
 
 details { margin-top: 12px; color: var(--muted); font-size: 15px; }
 summary { cursor: pointer; color: var(--text); font-weight: 600; }
+details.manual { margin: 4px 0 14px; padding: 0 14px; background: var(--field); border: 1px solid var(--line); border-radius: 12px; color: var(--text); font-size: inherit; }
+details.manual > summary { display: flex; align-items: center; gap: 8px; padding: 13px 0; list-style: none; }
+details.manual > summary::-webkit-details-marker { display: none; }
+details.manual > summary::after { content: ""; width: 8px; height: 8px; margin-left: auto; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg) translateY(-3px); transition: transform .15s; flex: none; }
+details.manual[open] > summary::after { transform: rotate(-135deg) translateY(-2px); }
+details.manual > summary small { color: var(--muted); font-weight: 500; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+details.manual[open] { padding-bottom: 4px; }
 
 /* Toast and dialogs */
 #toast {

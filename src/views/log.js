@@ -96,7 +96,9 @@ function renderMeal(root, app) {
         ${field("mDate", "Date", 'type="date"', v.date)}
         ${field("mName", "Food", 'placeholder="e.g. Chicken rice bowl" autocomplete="off"', v.name)}
       </div>
-      <label class="field"><span>Quick entry</span><input id="mQuick" placeholder="e.g. 650 cal 70c 45p 18f 8 fiber" autocomplete="off"></label>
+      <details class="manual" id="mManual"${m && !m.items?.length ? " open" : ""}>
+        <summary><span>Enter calories yourself</span><small id="mTotals"></small></summary>
+        <label class="field"><span>Type it all at once</span><input id="mQuick" placeholder="e.g. 650 cal 70c 45p 18f 8 fiber" autocomplete="off"></label>
       <div class="row5">
         ${field("mKcal", "Calories", 'type="number" inputmode="numeric" min="0"', v.kcal ?? "")}
         ${field("mCarbs", "Carbs g", 'type="number" inputmode="decimal" min="0"', v.carbs ?? "")}
@@ -105,6 +107,7 @@ function renderMeal(root, app) {
         ${field("mFiber", "Fiber g", 'type="number" inputmode="decimal" min="0"', v.fiber ?? "")}
       </div>
       <p class="hint" id="mEstimate"></p>
+      </details>
       ${field("mNotes", "Notes", 'placeholder="Optional"', v.notes)}
       <div class="actions">
         <button class="btn primary" id="mSave">${m ? "Update" : "Save"}</button>
@@ -114,7 +117,15 @@ function renderMeal(root, app) {
     </section>`;
 
   const ids = { kcal: "mKcal", carbs: "mCarbs", protein: "mProtein", fat: "mFat", fiber: "mFiber" };
+  // The closed "Enter calories yourself" section still shows the totals.
+  const showTotals = () => {
+    const k = $("#mKcal").value;
+    const c = $("#mCarbs").value;
+    const pr = $("#mProtein").value;
+    $("#mTotals").textContent = k !== "" ? `${k} kcal${c !== "" ? ` · ${c} g carbs` : ""}${pr !== "" ? ` · ${pr} g protein` : ""}` : "";
+  };
   const estimate = () => {
+    showTotals();
     const est = num($("#mCarbs")) * 4 + num($("#mProtein")) * 4 + num($("#mFat")) * 9;
     $("#mEstimate").textContent = est && !num($("#mKcal")) ? `Calories from macros: about ${Math.round(est)}. Leave Calories blank to use this.` : "";
   };
