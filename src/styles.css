@@ -25,7 +25,7 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; touch-action: manipulation; } /* no double-tap zoom */
 body {
   margin: 0;
   background: var(--bg);
@@ -593,6 +593,8 @@ body.onboarding { overflow: hidden; }
 .food-results button:active { background: var(--line); }
 .food-results strong { font-weight: 600; font-size: 15px; }
 .food-results small { color: var(--muted); font-size: 13px; }
+.food-results li.food-group { padding: 10px 10px 4px; margin-top: 4px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.food-results li.hint .link-btn { font-size: inherit; padding: 0 0 0 4px; }
 .pick-row { display: grid; grid-template-columns: 96px 1fr; gap: 10px; margin-top: 10px; }
 .pick-row .field { margin: 0; }
 .food-pick .actions { margin-top: 4px; }

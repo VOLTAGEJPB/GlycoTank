@@ -68,7 +68,28 @@ export function searchFoods(list, query, limit = 25) {
     const own = plainSearch(list, query, limit).filter((r) => !close.includes(r));
     return [...close, ...own].slice(0, limit);
   }
-  return plainSearch(list, query, limit);
+  const rows = plainSearch(list, query, limit);
+  if (rows.length) return rows;
+  return looseSearch(list, query, limit);
+}
+
+// When nothing has every word: drop leading words the list doesn't know, like a
+// brand ("Quaker rice cakes" -> "rice cakes"), or split words typed together
+// ("ricecake" -> "Rice cake"). The rows are marked `loose`.
+function looseSearch(list, query, limit) {
+  const q = words(query);
+  let rows = [];
+  for (let i = 1; i < q.length && !rows.length; i++) rows = plainSearch(list, q.slice(i).join(" "), limit);
+  const joined = squash(query);
+  if (!rows.length && q.length === 1 && joined.length >= 5) {
+    rows = list
+      .filter((f) => squash(f.row[0].split(",")[0]).startsWith(joined.replace(/s$/, "")))
+      .sort((a, b) => a.row[0].length - b.row[0].length)
+      .slice(0, limit)
+      .map((f) => f.row);
+  }
+  rows.loose = rows.length > 0;
+  return rows;
 }
 
 function plainSearch(list, query, limit) {
@@ -108,7 +129,7 @@ export function nutritionFor(row, grams) {
 }
 
 const PLURAL = Object.fromEntries(
-  ["cup", "tablespoon", "teaspoon", "slice", "piece", "egg", "banana", "apple", "fl oz", "bagel", "cookie", "muffin", "pancake", "waffle", "tortilla", "link", "patty", "strip", "stick", "bar", "can", "bottle", "packet", "serving", "breast", "thigh", "drumstick", "wing", "fillet", "sandwich"]
+  ["cup", "tablespoon", "teaspoon", "slice", "piece", "egg", "banana", "apple", "fl oz", "bagel", "cookie", "muffin", "pancake", "waffle", "tortilla", "link", "patty", "strip", "stick", "bar", "can", "bottle", "packet", "serving", "breast", "thigh", "drumstick", "wing", "fillet", "sandwich", "cake", "cracker", "chip", "pouch", "container", "pack", "scoop", "bowl"]
     .map((w) => [w, w === "fl oz" ? w : w.endsWith("ch") ? `${w}es` : `${w}s`]),
 );
 

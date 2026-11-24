@@ -1,6 +1,7 @@
 import { localDate, plateMath, parseMealText, mealSlot, slotForHour, MEAL_SLOTS } from "../model.js";
 import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
 import { loadFoods, searchFoods, menuItemFor, portionsFor, nutritionFor, portionLabel, sumItems } from "../foods.js";
+import { searchBrands } from "../brands.js";
 import { photoEstimates, estimateFromPhoto } from "../photo.js";
 import { gmailAvailable, gmailLinked, gmailOrders } from "../gmail.js";
 import { uid } from "../store.js";
@@ -157,12 +158,47 @@ function renderMeal(root, app) {
   if (items.length) refreshItems(false);
 
   // ----- Search foods -----
+  // The built-in list shows right away; store products from Open Food Facts load
+  // below it once typing stops (it only allows a few searches a minute).
   let foodList = null;
   let searchTimer;
+  let brandTimer;
+  let shown = [];
   const foodQ = $("#foodQ");
+  const resultLi = (r, i) => {
+    const [desc, grams] = portionsFor(r)[0];
+    return `<li><button data-food="${i}"><strong>${esc(r[0])}</strong><small>${nutritionFor(r, grams).kcal} kcal · ${esc(desc)}${r[7] && !/^(oz|g)$/.test(desc) ? ` (${grams} g)` : ""}</small></button></li>`;
+  };
+  const bindResults = (ul) => $$("[data-food]", ul).forEach((b) => (b.onclick = () => pickFood(shown[b.dataset.food])));
+  const loadBrands = async (text, loose) => {
+    const ul = $("#foodResults");
+    const status = () => ul.querySelector("#brandStatus");
+    if (!status()) return;
+    try {
+      const rows = await searchBrands(text);
+      if (foodQ.value.trim() !== text || !status()) return;
+      const start = shown.length;
+      shown = [...shown, ...rows];
+      status().outerHTML = rows.length ? rows.map((r, i) => resultLi(r, start + i)).join("") : `<li class="hint">No store products found.</li>`;
+      // A brand name in the search means the products matter most.
+      const group = ul.querySelector(".food-group");
+      if (loose && rows.length && group) ul.scrollTop = group.offsetTop - ul.offsetTop;
+      bindResults(ul);
+    } catch (e) {
+      if (foodQ.value.trim() !== text || !status()) return;
+      status().innerHTML = `Store products didn't load. <button type="button" class="link-btn" id="brandRetry">Try again</button>`;
+      ul.querySelector("#brandRetry").onclick = () => {
+        status().textContent = "Searching store products…";
+        loadBrands(text, loose);
+      };
+    }
+  };
+  // Fewer basic foods when the search is specific, so store products stay in view.
+  const basicCount = (text) => (text.split(/\s+/).length > 1 ? 6 : 10);
   const runSearch = async () => {
     const text = foodQ.value.trim();
     const ul = $("#foodResults");
+    clearTimeout(brandTimer);
     if (text.length < 2) return (ul.hidden = true);
     try {
       foodList ??= await loadFoods();
@@ -173,16 +209,17 @@ function renderMeal(root, app) {
       return;
     }
     if (foodQ.value.trim() !== text) return; // the user kept typing
-    const rows = searchFoods(foodList, text, 15);
+    const rows = searchFoods(foodList, text, basicCount(text));
+    shown = [...rows];
     ul.hidden = false;
     const menu = rows.length ? menuItemFor(text) : null;
+    const brands = text.length >= 3;
     ul.innerHTML = (menu ? `<li class="hint">The food list doesn't have the ${esc(menu.name)} by name. These are the closest. For exact calories, check the restaurant's menu and enter them below.</li>` : "") + (rows.length
-      ? rows.map((r, i) => {
-          const [desc, grams] = portionsFor(r)[0];
-          return `<li><button data-food="${i}"><strong>${esc(r[0])}</strong><small>${nutritionFor(r, grams).kcal} kcal · ${esc(desc)}</small></button></li>`;
-        }).join("")
-      : `<li class="hint">No matches. Try a simpler word, or enter the numbers below.</li>`);
-    $$("[data-food]", ul).forEach((b) => b.addEventListener("click", () => pickFood(rows[b.dataset.food])));
+      ? rows.map(resultLi).join("")
+      : `<li class="hint">${brands ? "No basic foods match." : "No matches. Try a simpler word, or enter the numbers below."}</li>`) +
+      (brands ? `<li class="food-group">Store products</li><li class="hint" id="brandStatus">Searching store products…</li>` : "");
+    bindResults(ul);
+    if (brands) brandTimer = setTimeout(() => loadBrands(text, rows.loose), 700);
   };
   foodQ.addEventListener("input", () => {
     clearTimeout(searchTimer);
@@ -192,14 +229,15 @@ function renderMeal(root, app) {
   const pickFood = (row) => {
     $("#foodResults").hidden = true;
     const ps = portionsFor(row);
-    const short = row[0].split(",")[0];
+    const brand = row[7];
+    const short = brand ? row[0] : row[0].split(",")[0];
     const box = $("#foodPick");
     box.hidden = false;
     box.innerHTML = `
-      <div class="scan-head"><strong>${esc(row[0])}</strong><span>USDA FoodData Central</span></div>
+      <div class="scan-head"><strong>${esc(row[0])}</strong><span>${brand ? `Store product · from <a href="https://world.openfoodfacts.org/product/${esc(brand.code)}" target="_blank" rel="noopener">Open Food Facts</a>. Check it matches your package.` : "USDA FoodData Central"}</span></div>
       <div class="pick-row">
-        <label class="field"><span>Amount</span><input id="fpQty" type="number" inputmode="decimal" min="0" step="any" value="1"></label>
-        <label class="field"><span>Portion</span><select id="fpPortion">${ps.map(([d, g], i) => `<option value="${i}">${esc(d)}${/^(oz|g)$/.test(d) ? "" : ` (${g} g)`}</option>`).join("")}</select></label>
+        <label class="field"><span>How many</span><input id="fpQty" type="number" inputmode="decimal" min="0" step="any" value="1"></label>
+        <label class="field"><span>Serving size</span><select id="fpPortion">${ps.map(([d, g], i) => `<option value="${i}">${esc(d)}${/^(oz|g)$/.test(d) ? "" : ` (${g} g)`}</option>`).join("")}</select></label>
       </div>
       <p class="hint" id="fpInfo"></p>
       <div class="actions"><button class="btn primary" id="fpAdd">Add to meal</button><button class="btn ghost" id="fpCancel">Cancel</button></div>`;
@@ -221,7 +259,7 @@ function renderMeal(root, app) {
     $("#fpAdd").addEventListener("click", () => {
       const amount = num(qty);
       if (!(amount > 0)) return toast("Enter an amount");
-      items.push({ name: row[0], short, portion: portionLabel(ps[sel.value][0], amount), grams: Math.round(grams()), ...nutritionFor(row, grams()), source: "usda" });
+      items.push({ name: row[0], short, portion: portionLabel(ps[sel.value][0], amount), grams: Math.round(grams()), ...nutritionFor(row, grams()), source: brand ? "brand" : "usda", ...(brand?.code ? { barcode: brand.code } : {}) });
       box.hidden = true;
       foodQ.value = "";
       refreshItems();
