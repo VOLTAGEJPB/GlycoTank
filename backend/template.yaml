@@ -87,7 +87,7 @@ Resources:
         - EmailSendingAccount: DEVELOPER
           SourceArn: !Sub arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${EmailDomain}
           From: !Sub "GlycoTank <no-reply@${EmailDomain}>"
-          ReplyToEmailAddress: joel.perez5588@gmail.com
+          ReplyToEmailAddress: support@glycotank.com
         - EmailSendingAccount: COGNITO_DEFAULT
       # Used for both the sign-up code and the password reset code.
       VerificationMessageTemplate:

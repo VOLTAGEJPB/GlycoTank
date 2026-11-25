@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
-const CONTACT = "joel.perez5588@gmail.com";
+const CONTACT = "support@glycotank.com";
 const UPDATED = "November 18, 2026";
 
 const css = `

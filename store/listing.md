@@ -10,7 +10,7 @@ Character limits are noted in brackets; every field below fits.
 - **Support URL:** https://glycotank.voltagejpb.com/support/
 - **Marketing URL:** https://glycotank.voltagejpb.com
 - **Privacy policy URL:** https://glycotank.voltagejpb.com/privacy/
-- **Contact email:** joel.perez5588@gmail.com
+- **Contact email:** support@glycotank.com
 - **Content rating:** Everyone / 4+ (no user-generated content shared with others, no web browsing; the Android app shows AdMob banner ads)
 - **App review sign-in:** Apple and Google need a demo account. Create one in the app before submitting (any email you can receive a code at) and enter its email and password in App Store Connect → App Review Information and Play Console → App access.
 
