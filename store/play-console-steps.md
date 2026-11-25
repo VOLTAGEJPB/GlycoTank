@@ -25,7 +25,7 @@ Home → **Create app**
 
 | Task | Answer |
 |---|---|
-| Privacy policy | `https://glycotank.voltagejpb.com/privacy/` |
+| Privacy policy | `https://glycotank.com/privacy/` |
 | App access | **All or some functionality is restricted** → add instructions: name "Reviewer account", email/password from `%LOCALAPPDATA%\GlycoTank-signing\app-review-account.txt`, note "Tap *I have an account*" |
 | Ads | **No** |
 | Content rating | Questionnaire: category *Health & fitness / reference*; no violence, sexual content, profanity, drugs, gambling; users don't interact or share content; no location sharing; no digital purchases → expect **Everyone** |
@@ -36,7 +36,7 @@ Home → **Create app**
 | Government app | No |
 | Financial features | None |
 | Health apps | Tick **Fitness / nutrition tracking**; not a medical device |
-| Account deletion | URL: `https://glycotank.voltagejpb.com/privacy/` (in-app: Settings → Account → Delete account) |
+| Account deletion | URL: `https://glycotank.com/privacy/` (in-app: Settings → Account → Delete account) |
 
 ## 3. Store listing (Grow users → Store presence → Main store listing)
 
@@ -44,7 +44,7 @@ Home → **Create app**
 - App icon 512×512: `store/icon-512-google.png`
 - Feature graphic 1024×500: `store/feature-graphic.png`
 - Phone screenshots: `store/screenshots/google-phone/*.png`
-- Category **Health & Fitness**, contact email, website `https://glycotank.voltagejpb.com`
+- Category **Health & Fitness**, contact email, website `https://glycotank.com`
 
 ## 4. First release
 

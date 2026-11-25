@@ -7,9 +7,9 @@ Character limits are noted in brackets; every field below fits.
 - **App name** (Apple 30 / Google 30): `GlycoTank: Carb & Fuel Tracker` (30)
 - **Category:** Health & Fitness
 - **Price:** Free, no in-app purchases. Contains ads (AdMob banner) on Android and iOS
-- **Support URL:** https://glycotank.voltagejpb.com/support/
-- **Marketing URL:** https://glycotank.voltagejpb.com
-- **Privacy policy URL:** https://glycotank.voltagejpb.com/privacy/
+- **Support URL:** https://glycotank.com/support/
+- **Marketing URL:** https://glycotank.com
+- **Privacy policy URL:** https://glycotank.com/privacy/
 - **Contact email:** support@glycotank.com
 - **Content rating:** Everyone / 4+ (no user-generated content shared with others, no web browsing; the Android app shows AdMob banner ads)
 - **App review sign-in:** Apple and Google need a demo account. Create one in the app before submitting (any email you can receive a code at) and enter its email and password in App Store Connect → App Review Information and Play Console → App access.
@@ -102,7 +102,7 @@ First release of GlycoTank.
   - Personal info → **Other info** (sex, goal)
 - Not collected: location, contacts, photos (label photos are read on-device), app activity, device IDs, financial info.
 - Barcode lookups send only a product barcode number to Open Food Facts; that is not user data.
-- Account deletion URL (required by Play): https://glycotank.voltagejpb.com/privacy/ (section "Deleting your account and data").
+- Account deletion URL (required by Play): https://glycotank.com/privacy/ (section "Deleting your account and data").
 
 **Camera:** used only when the user taps Scan barcode or Scan label. Label photos are processed on-device and not stored or uploaded.
 

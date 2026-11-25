@@ -1,5 +1,5 @@
 // Builds the GlycoTank website (home, privacy policy, support) into site/public/.
-// Deployed to https://glycotank.voltagejpb.com with `npx wrangler deploy` from site/.
+// Deployed to https://glycotank.com (also www. and the old glycotank.voltagejpb.com) with `npx wrangler deploy` from site/.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

@@ -2,7 +2,12 @@ name = "glycotank-site"
 compatibility_date = "2026-09-01"
 workers_dev = false
 
-routes = [{ pattern = "glycotank.voltagejpb.com", custom_domain = true }]
+routes = [
+  { pattern = "glycotank.com", custom_domain = true },
+  { pattern = "www.glycotank.com", custom_domain = true },
+  # Old address, kept because app versions already installed link here.
+  { pattern = "glycotank.voltagejpb.com", custom_domain = true },
+]
 
 [assets]
 directory = "./public"

@@ -17,7 +17,7 @@ Parameters:
     Type: String
     Default: ""
     Description: >
-      Verified SES domain to send account emails from (e.g. glycotank.voltagejpb.com).
+      Verified SES domain to send account emails from (e.g. glycotank.com).
       Empty uses Cognito's built-in sender, which is limited to about 50 emails a day.
 
   # Google sign-in: an OAuth client from Google Cloud Console (Web application).

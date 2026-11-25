@@ -48,7 +48,7 @@ export function openAuth() {
         <p class="ob-sub">We'll email you a code to confirm it's you.</p>
         <label class="field"><span>Email</span><input id="auEmail" type="email" inputmode="email" autocomplete="email" value="${esc(email)}" placeholder="you@example.com"></label>
         ${passwordField("auPassword", "Password", "new-password")}
-        <p class="ob-fine">By creating an account you agree to our <a href="https://glycotank.voltagejpb.com/privacy/" target="_blank" rel="noopener">privacy policy</a>.</p>`,
+        <p class="ob-fine">By creating an account you agree to our <a href="https://glycotank.com/privacy/" target="_blank" rel="noopener">privacy policy</a>.</p>`,
       verify: () => `
         <h2>Check your email</h2>
         <p class="ob-sub">Enter the 6-digit code we sent to <strong>${esc(email)}</strong>.</p>
