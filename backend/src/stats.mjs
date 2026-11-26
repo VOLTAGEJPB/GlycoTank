@@ -18,11 +18,14 @@ const json = (statusCode, body) => ({ statusCode, headers: { "content-type": "ap
 // Calendar day (YYYY-MM-DD) of a timestamp in the viewer's time zone.
 export const dayOf = (ms, tz) => new Date(ms + tz * 60_000).toISOString().slice(0, 10);
 
-// How someone signed up, from the Cognito username of a federated user.
-export function providerOf(username = "") {
-  const u = username.toLowerCase();
-  if (u.startsWith("google_")) return "Google";
-  if (u.startsWith("signinwithapple_")) return "Apple";
+// How someone signs in. Google and Apple logins are linked to an email account
+// (see presignup.mjs), so they show up in the user's `identities` attribute.
+export function providerOf(user = {}) {
+  let ids = [];
+  try { ids = JSON.parse(user.Attributes?.find((a) => a.Name === "identities")?.Value || "[]").map((i) => i.providerName); } catch {}
+  const name = (user.Username || "").toLowerCase();
+  if (ids.includes("SignInWithApple") || name.startsWith("signinwithapple_")) return "Apple";
+  if (ids.includes("Google") || name.startsWith("google_")) return "Google";
   return "Email";
 }
 
@@ -60,7 +63,7 @@ export function summarize(users, rows, tz, now = Date.now()) {
   const providers = { Email: 0, Google: 0, Apple: 0 };
   let confirmed = 0;
   for (const u of users) {
-    providers[providerOf(u.Username)]++;
+    providers[providerOf(u)]++;
     if (u.UserStatus === "CONFIRMED" || u.UserStatus === "EXTERNAL_PROVIDER") confirmed++;
     const d = dayOf(new Date(u.UserCreateDate).getTime(), tz);
     if (per[d]) per[d].newUsers++;
@@ -87,7 +90,7 @@ export function summarize(users, rows, tz, now = Date.now()) {
   const recent = [...users]
     .sort((a, b) => new Date(b.UserCreateDate) - new Date(a.UserCreateDate))
     .slice(0, 8)
-    .map((u) => ({ joined: new Date(u.UserCreateDate).toISOString(), via: providerOf(u.Username) }));
+    .map((u) => ({ joined: new Date(u.UserCreateDate).toISOString(), via: providerOf(u) }));
   return {
     generatedAt: new Date(now).toISOString(),
     today,
