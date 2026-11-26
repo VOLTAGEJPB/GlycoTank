@@ -7,6 +7,23 @@ import { Camera } from "@capacitor/camera";
 import { CLOUD } from "./cloud-config.js";
 import { idToken } from "./auth.js";
 import { ScanError } from "./scan.js";
+import { localDate } from "./model.js";
+
+// The server allows 3 photo scans (meal photos and receipts together) per
+// account per day. The app remembers the count the server last reported, so it
+// can show what's left; a new day starts back at 3.
+export const DAILY_SCANS = 3;
+const QUOTA_KEY = "glycotank.photoScans";
+export function scansLeftToday() {
+  try {
+    const q = JSON.parse(localStorage.getItem(QUOTA_KEY));
+    if (q?.day === localDate() && Number.isInteger(q.left)) return Math.max(0, Math.min(DAILY_SCANS, q.left));
+  } catch {}
+  return DAILY_SCANS;
+}
+const rememberLeft = (left) => {
+  try { localStorage.setItem(QUOTA_KEY, JSON.stringify({ day: localDate(), left })); } catch {}
+};
 
 // Plenty to recognize food and keep the upload small; receipts get more pixels
 // so their small print stays readable.
@@ -64,6 +81,7 @@ async function shrink(blob, maxSide) {
 // or null if the user didn't pick a photo. `kind` is "meal" or "receipt";
 // `onBusy` is called once a photo is chosen.
 export async function estimateFromPhoto(fromGallery, onBusy, kind = "meal") {
+  if (scansLeftToday() === 0) throw new ScanError(`You've used today's ${DAILY_SCANS} free photo scans. They reset at midnight.`);
   const blob = await pickPhoto(fromGallery);
   if (!blob) return null;
   onBusy?.();
@@ -80,6 +98,8 @@ export async function estimateFromPhoto(fromGallery, onBusy, kind = "meal") {
     throw new ScanError("Couldn't reach GlycoTank. Check your internet connection.");
   }
   const data = await res.json().catch(() => ({}));
+  if (res.status === 429) rememberLeft(0);
+  if (res.ok && Number.isInteger(data.remaining)) rememberLeft(data.remaining);
   if (res.status === 404) throw new ScanError("Photo estimates aren't available yet.");
   if (!res.ok) throw new ScanError(data.error || "Something went wrong reading this photo. Please try again.");
   return data;

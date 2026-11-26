@@ -2,7 +2,7 @@ import { localDate, plateMath, parseMealText, mealSlot, slotForHour, MEAL_SLOTS 
 import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
 import { loadFoods, searchFoods, menuItemFor, portionsFor, nutritionFor, portionLabel, sumItems } from "../foods.js";
 import { searchBrands } from "../brands.js";
-import { photoEstimates, estimateFromPhoto, scansLeft } from "../photo.js";
+import { photoEstimates, estimateFromPhoto, scansLeft, scansLeftToday, DAILY_SCANS } from "../photo.js";
 import { gmailAvailable, gmailLinked, gmailOrders } from "../gmail.js";
 import { uid } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
@@ -76,6 +76,7 @@ function renderMeal(root, app) {
         ${native ? `<button type="button" class="add-tile" id="scanLabel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM8 9h8v2H8V9zm0 4h6v2H8v-2z"/></svg>Label</button>` : ""}
         ${photoEstimates() ? `<button type="button" class="add-tile" id="scanReceipt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2v20l2.33-1.5L9.67 22 12 20.5 14.33 22l2.34-1.5L19 22V2l-2.33 1.5L14.33 2 12 3.5 9.67 2 7.33 3.5 5 2zm3 6h8v2H8V8zm0 4h8v2H8v-2z"/></svg>Receipt</button>` : ""}
       </div>
+      ${photoEstimates() ? `<p class="scan-quota" id="scanQuota" aria-live="polite"></p>` : ""}
       <button type="button" class="email-banner" id="emailBanner" hidden></button>
       <div id="barcodeEntry" class="barcode-entry" hidden>
         <input id="barcodeInput" inputmode="numeric" placeholder="Barcode number" aria-label="Barcode number">
@@ -392,6 +393,17 @@ function renderMeal(root, app) {
     }
     return ok;
   };
+  // "●●○ 2 of 3 photo scans left today" under the tiles; Photo and Receipt dim at 0.
+  const showQuota = () => {
+    const el = $("#scanQuota");
+    if (!el) return;
+    const left = scansLeftToday();
+    el.innerHTML = `<span class="dots" aria-hidden="true">${Array.from({ length: DAILY_SCANS }, (_, i) => `<i class="${i < left ? "on" : ""}"></i>`).join("")}</span>` +
+      (left ? `${left} of ${DAILY_SCANS} photo scans left today` : "No photo scans left today · resets at midnight");
+    el.classList.toggle("empty", !left);
+    for (const id of ["mealPhoto", "scanReceipt"]) $("#" + id)?.classList.toggle("spent", !left);
+  };
+  showQuota();
   const fromPhoto = async (fromGallery) => {
     if (!(await photoConsent())) return;
     const btn = $("#mealPhoto");
@@ -407,6 +419,7 @@ function renderMeal(root, app) {
       report(err);
     } finally {
       busy(btn, false);
+      showQuota();
     }
   };
 
@@ -453,6 +466,7 @@ function renderMeal(root, app) {
       report(err);
     } finally {
       busy(btn, false);
+      showQuota();
     }
   };
 
@@ -481,6 +495,7 @@ function renderMeal(root, app) {
     $(`#${id}`)?.addEventListener("click", () => {
       // Only the camera needs a choice; a browser can't scan, so go straight to typing.
       if (id === "scanBarcode" && !native) return typeBarcode();
+      if ((id === "mealPhoto" || id === "scanReceipt") && !scansLeftToday()) return toast(`You've used today's ${DAILY_SCANS} free photo scans. They reset at midnight.`);
       $("#addSheetTitle").textContent = title;
       $("#addSheetHint").textContent = hint;
       const box = $("#addSheetOptions");

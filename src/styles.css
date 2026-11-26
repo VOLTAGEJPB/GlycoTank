@@ -478,6 +478,12 @@ body.onboarding { overflow: hidden; }
 .add-tile:active { transform: scale(0.96); background: #1d3228; }
 .add-tile:disabled { opacity: 0.6; cursor: default; }
 .add-tile svg { width: 24px; height: 24px; fill: var(--accent); fill-rule: evenodd; flex: none; }
+.add-tile.spent { opacity: 0.45; }
+.scan-quota { display: flex; align-items: center; gap: 8px; margin: -6px 0 14px; font-size: 13px; color: var(--muted); }
+.scan-quota .dots { display: inline-flex; gap: 4px; }
+.scan-quota .dots i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--accent); }
+.scan-quota .dots i.on { background: var(--accent); }
+.scan-quota.empty { color: var(--text); }
 .add-sheet { width: min(100%, 560px); max-width: 100%; margin: auto auto 0; padding: 20px 16px calc(16px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; }
 .add-sheet h3 { margin: 0; font-size: 18px; }
 .email-banner { display: block; width: 100%; margin: -4px 0 14px; padding: 12px 14px; background: #17271f; border: 1px solid #2c4a3c; border-radius: 12px; color: var(--accent); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
