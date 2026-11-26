@@ -169,8 +169,9 @@ function renderMeal(root, app) {
   if (items.length) refreshItems(false);
 
   // ----- Search foods -----
-  // The built-in list shows right away; store products from Open Food Facts load
-  // below it once typing stops (it only allows a few searches a minute).
+  // Store products from Open Food Facts are listed first; they load once typing
+  // stops (it only allows a few searches a minute). The built-in list of basic
+  // foods shows right away underneath.
   let foodList = null;
   let searchTimer;
   let brandTimer;
@@ -181,7 +182,7 @@ function renderMeal(root, app) {
     return `<li><button data-food="${i}"><strong>${esc(r[0])}</strong><small>${nutritionFor(r, grams).kcal} kcal · ${esc(desc)}${r[7] && !/^(oz|g)$/.test(desc) ? ` (${grams} g)` : ""}</small></button></li>`;
   };
   const bindResults = (ul) => $$("[data-food]", ul).forEach((b) => (b.onclick = () => pickFood(shown[b.dataset.food])));
-  const loadBrands = async (text, loose) => {
+  const loadBrands = async (text) => {
     const ul = $("#foodResults");
     const status = () => ul.querySelector("#brandStatus");
     if (!status()) return;
@@ -191,20 +192,17 @@ function renderMeal(root, app) {
       const start = shown.length;
       shown = [...shown, ...rows];
       status().outerHTML = rows.length ? rows.map((r, i) => resultLi(r, start + i)).join("") : `<li class="hint">No store products found.</li>`;
-      // A brand name in the search means the products matter most.
-      const group = ul.querySelector(".food-group");
-      if (loose && rows.length && group) ul.scrollTop = group.offsetTop - ul.offsetTop;
       bindResults(ul);
     } catch (e) {
       if (foodQ.value.trim() !== text || !status()) return;
       status().innerHTML = `Store products didn't load. <button type="button" class="link-btn" id="brandRetry">Try again</button>`;
       ul.querySelector("#brandRetry").onclick = () => {
         status().textContent = "Searching store products…";
-        loadBrands(text, loose);
+        loadBrands(text);
       };
     }
   };
-  // Fewer basic foods when the search is specific, so store products stay in view.
+  // Fewer basic foods when the search is specific.
   const basicCount = (text) => (text.split(/\s+/).length > 1 ? 6 : 10);
   const runSearch = async () => {
     const text = foodQ.value.trim();
@@ -225,12 +223,13 @@ function renderMeal(root, app) {
     ul.hidden = false;
     const menu = rows.length ? menuItemFor(text) : null;
     const brands = text.length >= 3;
-    ul.innerHTML = (menu ? `<li class="hint">The food list doesn't have the ${esc(menu.name)} by name. These are the closest. For exact calories, check the restaurant's menu and enter them below.</li>` : "") + (rows.length
+    ul.scrollTop = 0;
+    ul.innerHTML = (brands ? `<li class="food-group">Store products</li><li class="hint" id="brandStatus">Searching store products…</li><li class="food-group">Basic foods</li>` : "") +
+      (menu ? `<li class="hint">The food list doesn't have the ${esc(menu.name)} by name. These are the closest. For exact calories, check the restaurant's menu and enter them below.</li>` : "") + (rows.length
       ? rows.map(resultLi).join("")
-      : `<li class="hint">${brands ? "No basic foods match." : "No matches. Try a simpler word, or enter the numbers below."}</li>`) +
-      (brands ? `<li class="food-group">Store products</li><li class="hint" id="brandStatus">Searching store products…</li>` : "");
+      : `<li class="hint">${brands ? "No basic foods match." : "No matches. Try a simpler word, or enter the numbers below."}</li>`);
     bindResults(ul);
-    if (brands) brandTimer = setTimeout(() => loadBrands(text, rows.loose), 700);
+    if (brands) brandTimer = setTimeout(() => loadBrands(text), 700);
   };
   foodQ.addEventListener("input", () => {
     clearTimeout(searchTimer);
