@@ -60,23 +60,27 @@ function renderMeal(root, app) {
   const slot = m ? mealSlot(m) : v.slot || slotForHour(new Date().getHours());
   const quick = m ? [] : quickMeals(state);
   root.innerHTML = `
-    <section class="card">
-      <h2>${m ? "Edit food" : "Add food"}</h2>
-      ${select("mSlot", "Meal", MEAL_SLOTS, slot)}
+    <section class="card add-card">
+      <div class="add-top">
+        <h2>${m ? "Edit food" : "Add food"}</h2>
+        <div class="add-when">
+          <label class="pill-select"><span class="sr-only">Meal</span><select id="mSlot">${MEAL_SLOTS.map(([k, n]) => `<option value="${k}"${k === slot ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+          <label class="pill-select date"><span id="mDateText"></span><input id="mDate" type="date" aria-label="Date" value="${esc(v.date || "")}"></label>
+        </div>
+      </div>
       <div class="food-search">
-        <label class="field"><span>Search foods</span><input id="foodQ" type="search" enterkeyhint="search" placeholder="e.g. bagel, cream cheese, banana" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+        <label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2a8 8 0 0 1 6.3 12.9l5.4 5.4-1.4 1.4-5.4-5.4A8 8 0 1 1 10 2zm0 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z"/></svg><input id="foodQ" type="search" enterkeyhint="search" placeholder="Search foods and brands" aria-label="Search foods" autocomplete="off" autocorrect="off" spellcheck="false"></label>
         <ul id="foodResults" class="food-results" hidden></ul>
         <div id="foodPick" class="scan-result food-pick" hidden></div>
       </div>
       ${m ? "" : `
-      <div class="label">Or add with</div>
+      <div class="section-head"><span class="label">Or add with</span>${photoEstimates() ? `<span class="scan-quota" id="scanQuota" aria-live="polite"></span>` : ""}</div>
       <div class="add-tiles">
         ${photoEstimates() ? `<button type="button" class="add-tile" id="mealPhoto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3 7.2 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>Photo</button>` : ""}
         <button type="button" class="add-tile" id="scanBarcode"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2v14H3V5zm3 0h1v14H6V5zm2 0h2v14H8V5zm3 0h1v14h-1V5zm3 0h2v14h-2V5zm3 0h1v14h-1V5zm2 0h2v14h-2V5z"/></svg>Barcode</button>
         ${native ? `<button type="button" class="add-tile" id="scanLabel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm14 0h2v6h-6v-2h4v-4zM8 9h8v2H8V9zm0 4h6v2H8v-2z"/></svg>Label</button>` : ""}
         ${photoEstimates() ? `<button type="button" class="add-tile" id="scanReceipt"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2v20l2.33-1.5L9.67 22 12 20.5 14.33 22l2.34-1.5L19 22V2l-2.33 1.5L14.33 2 12 3.5 9.67 2 7.33 3.5 5 2zm3 6h8v2H8V8zm0 4h8v2H8v-2z"/></svg>Receipt</button>` : ""}
       </div>
-      ${photoEstimates() ? `<p class="scan-quota" id="scanQuota" aria-live="polite"></p>` : ""}
       <button type="button" class="email-banner" id="emailBanner" hidden></button>
       <div id="barcodeEntry" class="barcode-entry" hidden>
         <input id="barcodeInput" inputmode="numeric" placeholder="Barcode number" aria-label="Barcode number">
@@ -90,15 +94,15 @@ function renderMeal(root, app) {
       </dialog>
       <div id="scanResult" class="scan-result" hidden></div>
       <div id="receiptPick" class="scan-result receipt-pick" hidden></div>`}
+      ${quick.length ? `<div class="section-head"><span class="label">Favorites &amp; recent</span></div>
+      <div class="chips quick-chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${q.fav ? "★ " : ""}${esc(q.name)}<small>${Math.round(q.kcal || 0)} kcal</small></button>`).join("")}</div>` : ""}
+    </section>
+    <section class="card meal-card">
+      <h2>Your meal</h2>
       <div id="mealItems" class="meal-items" hidden></div>
-      ${quick.length ? `<div class="label mt">Favorites &amp; recent</div>
-      <div class="chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${q.fav ? "★ " : ""}${esc(q.name)}<small>${Math.round(q.kcal || 0)} kcal</small></button>`).join("")}</div>` : ""}
-      <div class="row2">
-        ${field("mDate", "Date", 'type="date"', v.date)}
-        ${field("mName", "Food", 'placeholder="e.g. Chicken rice bowl" autocomplete="off"', v.name)}
-      </div>
+      ${field("mName", "Name", 'placeholder="e.g. Chicken rice bowl" autocomplete="off"', v.name)}
       <details class="manual" id="mManual"${m && !m.items?.length ? " open" : ""}>
-        <summary><span>Enter calories yourself</span><small id="mTotals"></small></summary>
+        <summary><span>Nutrition &amp; notes</span><small id="mTotals"></small></summary>
         <label class="field"><span>Type it all at once</span><input id="mQuick" placeholder="e.g. 650 cal 70c 45p 18f 8 fiber" autocomplete="off"></label>
       <div class="row5">
         ${field("mKcal", "Calories", 'type="number" inputmode="numeric" min="0"', v.kcal ?? "")}
@@ -108,14 +112,23 @@ function renderMeal(root, app) {
         ${field("mFiber", "Fiber g", 'type="number" inputmode="decimal" min="0"', v.fiber ?? "")}
       </div>
       <p class="hint" id="mEstimate"></p>
+        ${field("mNotes", "Notes", 'placeholder="Optional"', v.notes)}
       </details>
-      ${field("mNotes", "Notes", 'placeholder="Optional"', v.notes)}
       <div class="actions">
-        <button class="btn primary" id="mSave">${m ? "Update" : "Save"}</button>
-        <button class="btn ghost" id="mFavSave">Save as favorite</button>
+        <button class="btn primary wide" id="mSave">${m ? "Update" : "Save"}</button>
+        <button class="btn ghost" id="mFavSave">★ Save as favorite</button>
         ${m ? `<button class="btn danger" id="mDelete">Delete</button>` : ""}
       </div>
     </section>`;
+
+  // The date pill reads "Today", "Yesterday" or a short date.
+  const showDate = () => {
+    const d = $("#mDate").value || localDate();
+    const today = localDate(), yest = localDate(new Date(Date.now() - 864e5));
+    $("#mDateText").textContent = d === today ? "Today" : d === yest ? "Yesterday" : new Date(d + "T12:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  };
+  $("#mDate").addEventListener("change", showDate);
+  showDate();
 
   const ids = { kcal: "mKcal", carbs: "mCarbs", protein: "mProtein", fat: "mFat", fiber: "mFiber" };
   // The closed "Enter calories yourself" section still shows the totals.
@@ -399,7 +412,7 @@ function renderMeal(root, app) {
     if (!el) return;
     const left = scansLeftToday();
     el.innerHTML = `<span class="dots" aria-hidden="true">${Array.from({ length: DAILY_SCANS }, (_, i) => `<i class="${i < left ? "on" : ""}"></i>`).join("")}</span>` +
-      (left ? `${left} of ${DAILY_SCANS} photo scans left today` : "No photo scans left today · resets at midnight");
+      (left ? `${left} of ${DAILY_SCANS} photo scans left today` : "None left · resets at midnight");
     el.classList.toggle("empty", !left);
     for (const id of ["mealPhoto", "scanReceipt"]) $("#" + id)?.classList.toggle("spent", !left);
   };
