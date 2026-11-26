@@ -5,6 +5,7 @@ import {
 import { $, esc, round, num, select } from "../ui.js";
 import { animate, countUp } from "../motion.js";
 import { workoutLine } from "./entries.js";
+import { fillHealthCard } from "./health-ui.js";
 
 let chartDays = 14;
 
@@ -44,6 +45,8 @@ export function renderTank(root, app) {
       <div id="chartTip" class="chart-tip">Tap the chart to see a day's value.</div>
     </section>
 
+    <section class="card health-card" id="healthCard" hidden></section>
+
     <section class="card">
       <h2>Plan tomorrow's carbs</h2>
       <p class="hint">Enter tomorrow's training. We'll suggest how many carbs to eat today so your tank stays near 75% full through tomorrow.${plannedFromLog ? " Workouts you've already logged for tomorrow are included." : ""}</p>
@@ -78,6 +81,7 @@ export function renderTank(root, app) {
   };
   ["planSets", "planMins", "planInt"].forEach((id) => $("#" + id).addEventListener("input", updatePlan));
   updatePlan();
+  fillHealthCard(app);
 
   $("#chartDays").addEventListener("change", (e) => {
     chartDays = +e.target.value;

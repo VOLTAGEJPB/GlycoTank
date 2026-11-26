@@ -6,4 +6,5 @@
     <string name="custom_url_scheme">com.joel.glycotank</string>
     <!-- GlycoTank's AdMob app ID (Android). -->
     <string name="admob_app_id">ca-app-pub-1749311923941430~2137254260</string>
+    <string name="health_connect_privacy_policy_url">https://glycotank.com/privacy/</string>
 </resources>

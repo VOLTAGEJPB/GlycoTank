@@ -67,13 +67,22 @@ export function glycoSeries(state, endDate) {
     const added = meals.reduce((t, m) => t + n(m.carbs) * (s.uptakePct / 100), 0);
     const training = state.workouts.filter((w) => w.date === date).reduce((t, w) => t + workoutCost(w, s), 0);
     const start = level;
-    const cost = training + (meals.length ? everydayUse(start, s) : 0);
+    const activity = meals.length ? stepsCost(state.meta?.healthDays?.[date]?.steps) : 0;
+    const cost = training + activity + (meals.length ? everydayUse(start, s) : 0);
     level = clamp(start + added - cost, 0, s.glycoCap);
-    series[date] = { start, added, training, cost, end: level };
+    series[date] = { start, added, training, activity, cost, end: level };
     if (date === endDate) break;
     date = addDays(date, 1);
   }
   return series;
+}
+
+// Extra glycogen used by walking around, from Apple Health / Health Connect
+// steps: ~3 g per 1,000 steps beyond an ordinary 6,000-step day (everyday use
+// already covers that much). Walking workouts aren't imported, so no double count.
+export const BASE_STEPS = 6000;
+export function stepsCost(steps) {
+  return Math.max(0, n(steps) - BASE_STEPS) * 0.003;
 }
 
 export function everydayUse(level, s) {

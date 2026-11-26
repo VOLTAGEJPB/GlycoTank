@@ -9,6 +9,7 @@ android {
 
 apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
+    implementation project(':aparajita-capacitor-secure-storage')
     implementation project(':capacitor-community-admob')
     implementation project(':capacitor-mlkit-barcode-scanning')
     implementation project(':capacitor-mlkit-text-recognition')
@@ -20,6 +21,7 @@ dependencies {
     implementation project(':capacitor-local-notifications')
     implementation project(':capacitor-preferences')
     implementation project(':capacitor-share')
+    implementation project(':capgo-capacitor-health')
 
 }
 

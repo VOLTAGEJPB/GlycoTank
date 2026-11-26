@@ -1,4 +1,6 @@
 import { localDate, readiness, readinessFor, baselineRhr } from "../model.js";
+import { checkinFromHealth } from "./health-ui.js";
+import { healthName } from "../health.js";
 import { uid } from "../store.js";
 import { $, esc, num, field, select, toast, success, prettyDate } from "../ui.js";
 
@@ -8,7 +10,9 @@ export function renderCheckin(root, app) {
   const { state } = app;
   const today = localDate();
   const existing = state.checks.find((c) => c.date === today);
-  const v = existing || { mood: "ok" };
+  // A new check-in starts from last night's watch data, if there is any.
+  const fromHealth = existing ? null : checkinFromHealth(state);
+  const v = existing || { mood: "ok", ...(fromHealth?.sleep ? { sleep: fromHealth.sleep } : {}), ...(fromHealth?.rhr ? { rhr: fromHealth.rhr } : {}) };
   const recent = [...state.checks].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 7);
 
   root.innerHTML = `
@@ -23,6 +27,7 @@ export function renderCheckin(root, app) {
         ${field("cSleep", "Sleep (hours)", 'type="number" inputmode="decimal" min="0" max="16" step="0.5"', v.sleep ?? "")}
         ${field("cRhr", "Resting heart rate", 'type="number" inputmode="numeric" min="30" max="140" placeholder="optional"', v.rhr || "")}
       </div>
+      ${fromHealth ? `<p class="hint health-fill">Filled in from ${esc(healthName())}: ${esc(fromHealth.line)}. Change anything that looks off.</p>` : ""}
       ${field("cNotes", "Notes", 'placeholder="Optional"', v.notes)}
       <div class="plan-out"><span class="label">Readiness</span><span class="kpi" id="cScore">–</span></div>
       <div class="actions"><button class="btn primary" id="cSave">${existing ? "Update check-in" : "Save check-in"}</button></div>

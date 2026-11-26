@@ -827,3 +827,17 @@ body.onboarding { overflow: hidden; }
 .stat-accounts li:first-child { border-top: 0; }
 .stat-accounts strong { font-size: 15px; overflow-wrap: anywhere; }
 .stat-accounts small { color: var(--muted); font-size: 12px; }
+
+/* ===================== Apple Health / Health Connect ===================== */
+.health-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.health-stats > div { display: flex; flex-direction: column; gap: 1px; padding: 10px; background: var(--field); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.health-stats strong { font-size: 22px; font-weight: 800; white-space: nowrap; }
+.health-stats span { font-size: 12px; color: var(--muted); }
+.health-stats small { font-size: 11px; color: var(--accent); font-weight: 600; }
+.health-offer { display: flex; align-items: center; gap: 12px; }
+.health-offer > div { display: flex; flex-direction: column; gap: 2px; }
+.health-offer strong { font-size: 16px; }
+.health-offer span { font-size: 13px; color: var(--muted); }
+.health-icon { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #3a1d26; }
+.health-icon svg { width: 22px; height: 22px; fill: #ff5a7a; }
+.health-fill { color: var(--accent); }

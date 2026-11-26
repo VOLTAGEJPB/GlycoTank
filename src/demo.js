@@ -16,6 +16,8 @@ const MEALS = [
 export function demoState() {
   const st = emptyState();
   st.meta = { introSeen: true, personalized: true };
+  // Sample watch data (Apple Health / Health Connect) for today.
+  st.meta.healthDays = { [localDate()]: { steps: 9840, activeKcal: 612, rhr: 54, hrv: 62, sleep: { asleep: 452, awake: 18, deep: 74, rem: 102, light: 276, staged: true, score: 88 } } };
   st.profile = { weight: 185, weightUnits: "lb", heightUnits: "ftin", heightFt: 5, heightIn: 11, age: 32, sex: "m", goal: "maintain", daysPerWeek: 4, setsPerSession: 14, cardioMinsPerWeek: 90, cardioIntensity: 3 };
   const t = personalize(st.profile);
   for (const k of ["kcalTarget", "proteinTarget", "carbGuide", "fiberTarget", "glycoCap", "uptakePct", "setCost", "cardioGpm", "dailyUse"]) st.settings[k] = t[k];

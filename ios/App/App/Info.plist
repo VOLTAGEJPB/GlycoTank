@@ -64,6 +64,10 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>GlycoTank reads your workouts, steps, sleep, resting heart rate, heart rate variability and active energy from Apple Health to log your training, estimate your glycogen tank and fill in your daily check-in. Your health data is never used for ads.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>GlycoTank doesn't write to Apple Health. This permission is only requested if a future feature saves data you choose to save.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>GlycoTank uses the camera to scan food barcodes, nutrition labels, meals and restaurant receipts so it can fill in your meals for you.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

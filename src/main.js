@@ -3,6 +3,7 @@ import { App as NativeApp } from "@capacitor/app";
 import { loadState, saveState, saveQuietly, resetState, flush, emptyState, onSaved } from "./store.js";
 import * as auth from "./auth.js";
 import { initSync, scheduleSync, syncNow } from "./sync.js";
+import { syncHealth } from "./health.js";
 import { openAuth } from "./views/auth.js";
 import { $, $$, toast } from "./ui.js";
 import { gmailAvailable, gmailLinked, gmailOrders } from "./gmail.js";
@@ -205,6 +206,10 @@ async function requireAccount() {
   }
   if (!app.state.meta.introSeen || params.has("intro")) showIntro({ startAt: +(params.get("intro") || 0) });
   else if (!params.has("demo")) startAds();
+  // Apple Health / Health Connect: new watch workouts and today's numbers.
+  const pullHealth = () => !params.has("demo") && syncHealth(app).then((changed) => changed && app.refresh()).catch(() => {});
+  pullHealth();
+  document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && pullHealth());
   // A linked Gmail is checked on launch; a failure just shows nothing.
   if (gmailAvailable()) {
     gmailLinked().then((linked) => (linked ? gmailOrders() : [])).then((orders) => {
