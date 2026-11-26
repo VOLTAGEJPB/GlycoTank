@@ -250,7 +250,7 @@ function renderMeal(root, app) {
         <label class="field"><span>Serving size</span><select id="fpPortion">${ps.map(([d, g], i) => `<option value="${i}">${esc(d)}${/^(oz|g)$/.test(d) ? "" : ` (${g} g)`}</option>`).join("")}</select></label>
       </div>
       <p class="hint" id="fpInfo"></p>
-      <div class="actions"><button class="btn primary" id="fpAdd">Add to meal</button><button class="btn ghost" id="fpCancel">Cancel</button></div>`;
+      <div class="actions"><button class="btn primary" id="fpSave">${m ? "Add and update" : `Save to ${esc($("#mSlot").selectedOptions[0]?.textContent || "meal")}`}</button><button class="btn ghost" id="fpAdd">Add more foods</button><button class="btn ghost" id="fpCancel">Cancel</button></div>`;
     const qty = $("#fpQty");
     const sel = $("#fpPortion");
     const grams = () => ps[sel.value][1] * (num(qty) || 0);
@@ -266,15 +266,18 @@ function renderMeal(root, app) {
     });
     qty.addEventListener("input", calc);
     calc();
-    $("#fpAdd").addEventListener("click", () => {
+    // Save: logs the meal right away. Add more foods: keeps building the meal.
+    const addPicked = () => {
       const amount = num(qty);
-      if (!(amount > 0)) return toast("Enter an amount");
+      if (!(amount > 0)) return toast("Enter an amount"), false;
       items.push({ name: row[0], short, portion: portionLabel(ps[sel.value][0], amount), grams: Math.round(grams()), ...nutritionFor(row, grams()), source: brand ? "brand" : "usda", ...(brand?.code ? { barcode: brand.code } : {}) });
       box.hidden = true;
       foodQ.value = "";
       refreshItems();
-      success(`${short} added`);
-    });
+      return true;
+    };
+    $("#fpSave").addEventListener("click", () => addPicked() && $("#mSave").click());
+    $("#fpAdd").addEventListener("click", () => addPicked() && success(`${short} added`));
     $("#fpCancel").addEventListener("click", () => {
       box.hidden = true;
       foodQ.focus();
