@@ -19,10 +19,15 @@ let started = false;
 let showing = false;
 let paused = false;
 
-const setHeight = (h) => document.documentElement.style.setProperty("--ad-h", `${Math.round(h)}px`);
+// How far the app's top bar moves down (--ad-h) so nothing is hidden behind the
+// banner. On iOS the plugin pulls the banner up by `margin` from the safe area,
+// so it fills the status bar strip and only the part taller than that strip
+// pushes the screen down. On Android it sits just under the status bar.
+const setHeight = (h) => {
+  const push = h && platform === "ios" ? Math.max(0, h - safeTop()) : h;
+  document.documentElement.style.setProperty("--ad-h", `${Math.round(push)}px`);
+};
 
-// The banner sits just under the status bar; the app's top bar moves down by
-// the banner's height (--ad-h) so nothing is hidden behind it.
 function safeTop() {
   const probe = document.createElement("div");
   probe.style.cssText = "position:fixed;top:0;height:var(--safe-top);visibility:hidden";
