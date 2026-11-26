@@ -12,7 +12,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 const MODEL = "claude-opus-5-5";
-const DAILY_LIMIT = 30;
+const DAILY_LIMIT = 3; // meal photos and receipt scans together, per user per day
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // the API's per-image limit
 const KEY_PARAM = process.env.API_KEY_PARAM;
 
@@ -29,19 +29,25 @@ async function anthropic() {
   return client;
 }
 
-// Counts today's estimates for this user; false once over the limit. The
+// The user's calendar day, so the limit resets at their midnight. The app sends
+// its UTC offset in minutes; older app versions don't, and get UTC.
+export function quotaDay(tzOffset, now = Date.now()) {
+  const tz = Number.isInteger(tzOffset) && Math.abs(tzOffset) <= 14 * 60 ? tzOffset : 0;
+  return new Date(now + tz * 60_000).toISOString().slice(0, 10);
+}
+
+// Counts today's estimates for this user and returns the new count. The
 // counter row has no `kind`, so sync never sends it to the app, and it's
 // removed with the rest of the user's rows when the account is deleted.
-async function withinLimit(userId) {
-  const day = new Date().toISOString().slice(0, 10);
+async function countUse(userId, day, delta = 1) {
   const res = await db.send(new UpdateCommand({
     TableName: process.env.TABLE,
     Key: { userId, recordKey: `quota#estimate#${day}` },
-    UpdateExpression: "ADD used :one SET expiresAt = if_not_exists(expiresAt, :exp)",
-    ExpressionAttributeValues: { ":one": 1, ":exp": Math.floor(Date.now() / 1000) + 3 * 86400 },
+    UpdateExpression: "ADD used :n SET expiresAt = if_not_exists(expiresAt, :exp)",
+    ExpressionAttributeValues: { ":n": delta, ":exp": Math.floor(Date.now() / 1000) + 3 * 86400 },
     ReturnValues: "UPDATED_NEW",
   }));
-  return res.Attributes.used <= DAILY_LIMIT;
+  return res.Attributes.used;
 }
 
 const NUM = { type: "number" };
@@ -86,17 +92,25 @@ const RECEIPT_PROMPT = `This is a photo of a restaurant or takeout receipt, take
 export async function handler(event) {
   const userId = event.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!userId) return json(401, { error: "unauthorized" });
-  let image, kind;
+  let image, kind, tzOffset;
   try {
-    ({ image, kind } = JSON.parse(event.body || "{}"));
+    ({ image, kind, tzOffset } = JSON.parse(event.body || "{}"));
   } catch {
     return json(400, { error: "bad request" });
   }
   if (typeof image !== "string" || !image) return json(400, { error: "send a photo" });
   if ((image.length * 3) / 4 > MAX_IMAGE_BYTES) return json(413, { error: "That photo is too large." });
 
+  const day = quotaDay(tzOffset);
+  let used = 0;
+  // A failure on our side (or Claude's) gives the try back.
+  const refund = () => (used ? countUse(userId, day, -1).catch((e) => console.error("refund failed", e)) : undefined);
   try {
-    if (!(await withinLimit(userId))) return json(429, { error: `You've used today's ${DAILY_LIMIT} photo estimates. Try again tomorrow.` });
+    used = await countUse(userId, day);
+    if (used > DAILY_LIMIT) {
+      used = 0; // nothing to give back: this one never ran
+      return json(429, { error: `You've used today's ${DAILY_LIMIT} free photo scans (meal photos and receipts). They reset at midnight.` });
+    }
     const api = await anthropic();
     const msg = await api.beta.messages.create({
       model: MODEL,
@@ -113,7 +127,7 @@ export async function handler(event) {
       }],
     });
     if (msg.stop_reason === "refusal") return json(422, { error: "Couldn't estimate this photo. Try another one." });
-    if (msg.stop_reason === "max_tokens") return json(502, { error: "The estimate was cut short. Please try again." });
+    if (msg.stop_reason === "max_tokens") return (await refund(), json(502, { error: "The estimate was cut short. Please try again." }));
     const text = msg.content.find((b) => b.type === "text")?.text;
     const out = JSON.parse(text);
     if (!out.is_food || !out.items.length) return json(422, { error: out.note || (kind === "receipt" ? "Couldn't find any food items on this receipt." : "No food found in this photo.") });
@@ -123,9 +137,10 @@ export async function handler(event) {
       portion: String(i.portion).slice(0, 60),
       kcal: Math.round(round(i.kcal)), carbs: round(i.carbs), protein: round(i.protein), fat: round(i.fat), fiber: round(i.fiber),
     }));
-    return json(200, { items, note: String(out.note || "").slice(0, 200) });
+    return json(200, { items, note: String(out.note || "").slice(0, 200), remaining: Math.max(0, DAILY_LIMIT - used) });
   } catch (e) {
     console.error(e);
+    await refund();
     if (e instanceof Anthropic.RateLimitError) return json(503, { error: "Photo estimates are busy right now. Try again in a minute." });
     if (e instanceof Anthropic.BadRequestError) return json(400, { error: "Couldn't read that photo. Try another one." });
     if (e?.name === "ParameterNotFound") return json(503, { error: "Photo estimates aren't set up yet." });

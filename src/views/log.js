@@ -2,7 +2,7 @@ import { localDate, plateMath, parseMealText, mealSlot, slotForHour, MEAL_SLOTS 
 import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
 import { loadFoods, searchFoods, menuItemFor, portionsFor, nutritionFor, portionLabel, sumItems } from "../foods.js";
 import { searchBrands } from "../brands.js";
-import { photoEstimates, estimateFromPhoto } from "../photo.js";
+import { photoEstimates, estimateFromPhoto, scansLeft } from "../photo.js";
 import { gmailAvailable, gmailLinked, gmailOrders } from "../gmail.js";
 import { uid } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
@@ -399,7 +399,7 @@ function renderMeal(root, app) {
       for (const it of res.items) items.push({ ...it, short: it.name, source: "photo" });
       photoNote = res.note || "";
       refreshItems();
-      success(`Found ${res.items.length} ${res.items.length === 1 ? "food" : "foods"}`);
+      success(`Found ${res.items.length} ${res.items.length === 1 ? "food" : "foods"}${scansLeft(res)}`);
       $("#mealItems").scrollIntoView({ block: "nearest", behavior: "smooth" });
     } catch (err) {
       report(err);
@@ -414,7 +414,7 @@ function renderMeal(root, app) {
     const box = $("#receiptPick");
     box.hidden = false;
     box.innerHTML = `
-      <div class="scan-head"><strong>Receipt</strong><span>Tick what you ate. Nutrition is estimated.</span></div>
+      <div class="scan-head"><strong>Receipt</strong><span>Tick what you ate. Nutrition is estimated.${esc(scansLeft(res))}</span></div>
       <ul class="receipt-list">${res.items.map((it, i) => `
         <li><label class="receipt-item"><input type="checkbox" data-r="${i}" checked>
           <span class="mi-name"><strong>${esc(it.name)}</strong><small>${esc(it.portion)} · ${Math.round(it.kcal)} kcal</small></span></label>

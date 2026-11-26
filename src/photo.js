@@ -15,6 +15,10 @@ const isCancel = (e) => /cancel/i.test(String(e?.message || e));
 
 export const photoEstimates = () => !!CLOUD.apiUrl;
 
+// " · 2 photo scans left today", from the server's count after an estimate.
+export const scansLeft = (res) =>
+  Number.isInteger(res?.remaining) ? ` · ${res.remaining} photo ${res.remaining === 1 ? "scan" : "scans"} left today` : "";
+
 // Lets the user take (or pick) a photo; resolves to a Blob, or null if they backed out.
 async function pickPhoto(fromGallery) {
   if (Capacitor.isNativePlatform()) {
@@ -69,7 +73,8 @@ export async function estimateFromPhoto(fromGallery, onBusy, kind = "meal") {
     res = await fetch(`${CLOUD.apiUrl}/estimate`, {
       method: "POST",
       headers: { Authorization: `Bearer ${await idToken()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ image, kind }),
+      // The daily photo limit resets at the user's midnight.
+      body: JSON.stringify({ image, kind, tzOffset: -new Date().getTimezoneOffset() }),
     });
   } catch {
     throw new ScanError("Couldn't reach GlycoTank. Check your internet connection.");
