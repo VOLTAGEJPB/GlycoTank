@@ -47,6 +47,11 @@ else { Write-Host "SES not ready (domain verified: $verified, production access:
 # %LOCALAPPDATA%\GlycoTank-signing\social-signin.json (see backend/social-signin.example.json).
 # Missing or blank values leave that provider off.
 $params = @{ EmailDomain = $EmailDomain }
+# Who can open the Stats dashboard in the app: Cognito user IDs, one per line,
+# in %LOCALAPPDATA%\GlycoTank-signing\admin-subs.txt.
+$adminFile = Join-Path $env:LOCALAPPDATA "GlycoTank-signing\admin-subs.txt"
+if (Test-Path $adminFile) { $params.AdminSubs = ((Get-Content $adminFile) | Where-Object { $_.Trim() } | ForEach-Object { $_.Trim() }) -join "," }
+Write-Host ("Stats dashboard admins: " + @($params.AdminSubs -split "," | Where-Object { $_ }).Count)
 $socialFile = Join-Path $env:LOCALAPPDATA "GlycoTank-signing\social-signin.json"
 if (Test-Path $socialFile) {
   $social = Get-Content $socialFile -Raw | ConvertFrom-Json

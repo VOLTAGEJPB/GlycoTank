@@ -791,3 +791,34 @@ body.onboarding { overflow: hidden; }
 .quick-row .star.on { color: #ffd166; }
 .quick-row .q-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .quick-row .q-kcal { flex: none; color: var(--muted); font-size: 13px; }
+
+/* ===================== Owner stats ===================== */
+.stat-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.stat-tile { display: flex; flex-direction: column; gap: 2px; padding: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; min-width: 0; }
+.stat-tile.big { grid-column: 1 / -1; background: linear-gradient(135deg, #17271f, var(--card)); border-color: #2c4a3c; }
+.stat-tile strong { font-size: 26px; line-height: 1.1; font-weight: 800; }
+.stat-tile.big strong { font-size: 44px; color: var(--accent); }
+.stat-tile small { color: var(--muted); font-size: 11px; }
+.stat-tile:not(.big) { padding: 12px; }
+.stat-tile:not(.big) .label { font-size: 12px; }
+.stat-chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.stat-chart-head h2 { margin: 0; }
+.stat-bars { display: grid; grid-template-columns: repeat(14, 1fr); gap: 4px; align-items: end; height: 110px; margin-top: 14px; }
+.stat-bars .bar { position: relative; height: 100%; display: flex; align-items: flex-end; background: var(--field); border-radius: 5px; }
+.stat-bars .bar span { display: block; width: 100%; min-height: 3px; background: #3f8f6c; border-radius: 5px; }
+.stat-bars .bar.today span { background: var(--accent); }
+.stat-bars .bar em { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-style: normal; font-size: 10px; font-weight: 700; color: #0b0d12; }
+.stat-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--muted); }
+.stat-split { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: var(--field); margin: 10px 0 12px; }
+.stat-split .seg, .stat-legend i { background: #9aa4b5; }
+.stat-split .apple, .stat-legend i.apple { background: #e8ecf3; }
+.stat-split .google, .stat-legend i.google { background: #4cc9f0; }
+.stat-split .email, .stat-legend i.email { background: var(--accent); }
+.stat-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 14px; }
+.stat-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.stat-legend small { color: var(--muted); }
+.stat-recent { list-style: none; margin: 0; padding: 0; }
+.stat-recent li { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); font-weight: 600; }
+.stat-recent li:first-child { border-top: 0; }
+.stat-recent small { color: var(--muted); font-weight: 500; }
+.stat-foot { text-align: center; margin: 4px 8px 20px; }

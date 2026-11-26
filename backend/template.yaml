@@ -13,6 +13,10 @@ Parameters:
     Type: String
     Default: glycotank-auth
     Description: Prefix for the Cognito hosted sign-in domain (used by Google and Apple sign-in).
+  AdminSubs:
+    Type: String
+    Default: ""
+    Description: Comma-separated Cognito user IDs (sub) allowed to read GET /stats, the owner's dashboard.
   EmailDomain:
     Type: String
     Default: ""
@@ -259,6 +263,28 @@ Resources:
         GetSync: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /sync, Method: GET } }
         PostSync: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /sync, Method: POST } }
         DeleteAccount: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /account, Method: DELETE } }
+
+  # Owner's dashboard: user and activity counts, only for AdminSubs.
+  StatsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: stats.handler
+      MemorySize: 256
+      Timeout: 20
+      Environment:
+        Variables:
+          TABLE: !Ref DataTable
+          USER_POOL_ID: !Ref UserPool
+          ADMIN_SUBS: !Ref AdminSubs
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref DataTable }
+        - Statement:
+            - Effect: Allow
+              Action: cognito-idp:ListUsers
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        Stats: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /stats, Method: GET } }
 
   # Meal photo -> estimated foods and nutrition (Claude). The Anthropic API key
   # is a SecureString in SSM Parameter Store at AnthropicKeyParam; until it
