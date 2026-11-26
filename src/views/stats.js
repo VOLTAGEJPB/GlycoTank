@@ -36,7 +36,8 @@ function demoStats() {
     generatedAt: new Date().toISOString(), today: day(0),
     users: { total: 31, confirmed: 29, providers: { Apple: 14, Google: 9, Email: 8 }, newToday: 2, new7: 18 },
     active: { today: 10, last7: 17, last30: 24 }, meals: { total: 412, today: 23 }, scans: { today: 9 }, days,
-    recent: [[1, "Apple"], [3, "Google"], [20, "Apple"], [26, "Email"], [50, "Apple"]].map(([h, via]) => ({ joined: ago(h), via })),
+    accounts: [["sam.r@example.com", ["Apple"], 1, 0.5, 2], ["lee.fit@example.com", ["Google", "Email"], 3, 2, 6], ["maria.k@example.com", ["Apple"], 20, 5, 11], ["dev.test@example.com", ["Email"], 26, null, 0]]
+      .map(([email, via, h, a, meals]) => ({ email, via, joined: ago(h), lastActive: a == null ? null : ago(a), meals, confirmed: true })),
   };
 }
 
@@ -79,10 +80,12 @@ function draw(body, s) {
       <div class="stat-legend">${["Apple", "Google", "Email"].map((k) => `<span><i class="${k.toLowerCase()}"></i>${k} <b>${p[k]}</b> <small>${Math.round((p[k] / total) * 100)}%</small></span>`).join("")}</div>
     </section>
     <section class="card">
-      <h2>Latest sign-ups</h2>
-      ${s.recent.length ? `<ul class="stat-recent">${s.recent.map((r) => `<li><span>${esc(r.via)}</span><small>${esc(ago(r.joined))}</small></li>`).join("")}</ul>` : `<p class="hint">No sign-ups yet.</p>`}
+      <div class="stat-chart-head"><h2>Accounts</h2><span class="hint">Newest first</span></div>
+      ${s.accounts?.length ? `<ul class="stat-accounts">${s.accounts.map((a) => `
+        <li><strong>${esc(a.email)}</strong>
+          <small>${esc(a.via.join(" + "))} · joined ${esc(ago(a.joined))} · ${a.lastActive ? `active ${esc(ago(a.lastActive))}` : "never synced"} · ${a.meals} ${a.meals === 1 ? "meal" : "meals"}${a.confirmed ? "" : " · not confirmed"}</small></li>`).join("")}</ul>` : `<p class="hint">No accounts yet.</p>`}
     </section>
-    <p class="hint stat-foot">Updated ${new Date(s.generatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} · Active means the app synced that day. Only your account can see this. <button type="button" class="link-btn" id="statsRefresh">Refresh</button></p>`;
+    <p class="hint stat-foot">Updated ${new Date(s.generatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} · Users with the same email count once. Active means the app synced that day. Only your account can see this. <button type="button" class="link-btn" id="statsRefresh">Refresh</button></p>`;
 }
 
 export async function renderStats(body) {

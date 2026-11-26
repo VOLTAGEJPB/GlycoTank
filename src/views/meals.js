@@ -33,7 +33,7 @@ export function renderMeals(root, app) {
     <section class="card meal-first">
       <div class="meal-hero">
         <div class="ring ${kcalLeft < 0 ? "over" : ""}" style="--pct:${round(pct)}">
-          <div><div class="kpi" id="kcalLeft">${round(Math.abs(kcalLeft))}</div><div class="sub">${kcalLeft >= 0 ? "kcal left" : "kcal over"}</div></div>
+          <div><div class="kpi" id="kcalEaten">${round(totals.kcal)}</div><div class="sub">kcal eaten</div></div>
         </div>
         <div class="macros">
           <div><div class="label">Calories <span>${round(totals.kcal)} / ${s.kcalTarget}</span></div>${progress(totals.kcal, s.kcalTarget)}</div>

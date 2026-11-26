@@ -1,8 +1,8 @@
 // GET /stats?tz=<minutes east of UTC>  ->  app-wide numbers for the owner's dashboard.
 //
 // Only the Cognito users listed in ADMIN_SUBS get an answer; everyone else gets
-// 404, the same as a route that doesn't exist. No emails or meal contents are
-// returned: just counts, sign-up dates and how people signed in.
+// 404, the same as a route that doesn't exist. Returns counts plus each
+// account's email, sign-in methods, join date and last activity (no meal contents).
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
@@ -55,20 +55,37 @@ async function scanRows() {
   return rows;
 }
 
+const attr = (u, name) => u.Attributes?.find((a) => a.Name === name)?.Value;
+
 // Pure so it can be tested: users from Cognito, rows from DynamoDB.
+// Cognito users with the same email are one person (one "account" here).
 export function summarize(users, rows, tz, now = Date.now()) {
   const today = dayOf(now, tz);
   const days = Array.from({ length: DAYS }, (_, i) => dayOf(now - (DAYS - 1 - i) * 86_400_000, tz));
   const per = Object.fromEntries(days.map((d) => [d, { day: d, newUsers: 0, activeUsers: new Set(), meals: 0, scans: 0 }]));
-  const providers = { Email: 0, Google: 0, Apple: 0 };
-  let confirmed = 0;
+
+  const people = new Map(); // email (or Cognito ID when there's none) -> account
+  const personOf = new Map(); // Cognito sub -> account
   for (const u of users) {
-    providers[providerOf(u)]++;
-    if (u.UserStatus === "CONFIRMED" || u.UserStatus === "EXTERNAL_PROVIDER") confirmed++;
-    const d = dayOf(new Date(u.UserCreateDate).getTime(), tz);
+    const sub = attr(u, "sub") || u.Username;
+    const email = (attr(u, "email") || "").trim().toLowerCase();
+    const key = email || sub;
+    const joined = new Date(u.UserCreateDate).getTime();
+    let p = people.get(key);
+    if (!p) people.set(key, (p = { email, via: new Set(), joined, lastActive: 0, meals: 0, confirmed: false }));
+    p.via.add(providerOf(u));
+    p.joined = Math.min(p.joined, joined);
+    if (u.UserStatus === "CONFIRMED" || u.UserStatus === "EXTERNAL_PROVIDER") p.confirmed = true;
+    personOf.set(sub, p);
+  }
+  const accounts = [...people.values()];
+  const providers = { Email: 0, Google: 0, Apple: 0 };
+  for (const p of accounts) {
+    for (const v of p.via) providers[v]++;
+    const d = dayOf(p.joined, tz);
     if (per[d]) per[d].newUsers++;
   }
-  const lastSeen = new Map();
+
   let mealsTotal = 0;
   for (const r of rows) {
     if (r.recordKey?.startsWith("quota#estimate#")) {
@@ -77,29 +94,37 @@ export function summarize(users, rows, tz, now = Date.now()) {
       continue;
     }
     if (!r.kind || !Number.isFinite(r.serverTime)) continue;
-    lastSeen.set(r.userId, Math.max(lastSeen.get(r.userId) || 0, r.serverTime));
+    const p = personOf.get(r.userId) || { lastActive: 0, meals: 0 }; // rows of deleted accounts still count as activity
+    p.lastActive = Math.max(p.lastActive, r.serverTime);
     const d = dayOf(r.serverTime, tz);
-    if (per[d]) per[d].activeUsers.add(r.userId);
+    if (per[d]) per[d].activeUsers.add(p);
     if (r.kind === "meal" && !r.deleted) {
       mealsTotal++;
+      p.meals++;
       if (per[d]) per[d].meals++;
     }
   }
-  const since = (ms) => [...lastSeen.values()].filter((t) => t >= now - ms).length;
+  const since = (ms) => accounts.filter((p) => p.lastActive >= now - ms).length;
   const series = days.map((d) => ({ ...per[d], activeUsers: per[d].activeUsers.size }));
-  const recent = [...users]
-    .sort((a, b) => new Date(b.UserCreateDate) - new Date(a.UserCreateDate))
-    .slice(0, 8)
-    .map((u) => ({ joined: new Date(u.UserCreateDate).toISOString(), via: providerOf(u) }));
+  const list = accounts
+    .sort((a, b) => b.joined - a.joined)
+    .map((p) => ({
+      email: p.email || "(no email)",
+      via: ["Apple", "Google", "Email"].filter((v) => p.via.has(v)),
+      joined: new Date(p.joined).toISOString(),
+      lastActive: p.lastActive ? new Date(p.lastActive).toISOString() : null,
+      meals: p.meals,
+      confirmed: p.confirmed,
+    }));
   return {
     generatedAt: new Date(now).toISOString(),
     today,
-    users: { total: users.length, confirmed, providers, newToday: per[today].newUsers, new7: series.slice(-7).reduce((s, x) => s + x.newUsers, 0) },
+    users: { total: accounts.length, logins: users.length, confirmed: accounts.filter((p) => p.confirmed).length, providers, newToday: per[today].newUsers, new7: series.slice(-7).reduce((s, x) => s + x.newUsers, 0) },
     active: { today: per[today].activeUsers.size, last7: since(7 * 86_400_000), last30: since(30 * 86_400_000) },
     meals: { total: mealsTotal, today: per[today].meals },
     scans: { today: per[today].scans },
     days: series,
-    recent,
+    accounts: list,
   };
 }
 
