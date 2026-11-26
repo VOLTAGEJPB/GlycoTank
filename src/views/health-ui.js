@@ -77,6 +77,7 @@ export async function renderHealthSettings(body, app) {
         ${!available && !ios ? `<button class="btn" id="hsInstall">Open Health Connect</button>` : ""}
       </div>
     </section>
+    <section class="card"><h2>Oura, Garmin, Whoop and other devices</h2><p class="hint">GlycoTank reads whatever your devices share with ${esc(name)}. In the Oura app, open Settings, then ${esc(name)}, and turn sharing on. Other rings and watches have the same switch in their own app.</p></section>
     ${on || t ? `<section class="card"><h2>Today</h2>${statsHtml(t || {})}<p class="hint">${imported} ${imported === 1 ? "workout" : "workouts"} imported so far.</p></section>` : ""}
     ${on ? `<section class="card"><h2>Choose what's shared</h2><p class="hint">${ios ? "Open the Health app, tap your profile picture, then Apps, then GlycoTank, to change what GlycoTank can read." : "Change what GlycoTank can read in Health Connect."}</p>${ios ? "" : `<button class="btn" id="hsPerms">Open Health Connect</button>`}</section>` : ""}`;
   $("#hsConnect")?.addEventListener("click", async () => {
