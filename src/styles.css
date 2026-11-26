@@ -782,3 +782,12 @@ body.onboarding { overflow: hidden; }
 .meal-card .meal-items { margin-top: 0; }
 .btn.wide { flex: 1 1 100%; }
 .add-when .pill-select select { height: 34px; min-height: 0; line-height: normal; padding: 0 28px 0 12px; margin: 0; }
+.quick-list { max-height: 232px; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--field); border: 1px solid var(--line); border-radius: 14px; padding: 2px 0; overscroll-behavior: contain; }
+.quick-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; padding: 8px 14px; background: none; border: 0; border-top: 1px solid var(--line); color: var(--text); font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.quick-row:first-child { border-top: 0; }
+.quick-row:active { background: #1d3228; }
+.quick-row.picked { color: var(--accent); }
+.quick-row .star { width: 18px; flex: none; text-align: center; color: var(--muted); font-size: 14px; }
+.quick-row .star.on { color: #ffd166; }
+.quick-row .q-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-row .q-kcal { flex: none; color: var(--muted); font-size: 13px; }

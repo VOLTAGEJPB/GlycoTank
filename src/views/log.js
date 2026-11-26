@@ -95,7 +95,7 @@ function renderMeal(root, app) {
       <div id="scanResult" class="scan-result" hidden></div>
       <div id="receiptPick" class="scan-result receipt-pick" hidden></div>`}
       ${quick.length ? `<div class="section-head"><span class="label">Favorites &amp; recent</span></div>
-      <div class="chips quick-chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${q.fav ? "★ " : ""}${esc(q.name)}<small>${Math.round(q.kcal || 0)} kcal</small></button>`).join("")}</div>` : ""}
+      <div class="quick-list">${quick.map((q, i) => `<button type="button" class="quick-row" data-quick="${i}"><span class="star${q.fav ? " on" : ""}" aria-hidden="true">${q.fav ? "★" : "↺"}</span><span class="q-name">${esc(q.name)}</span><span class="q-kcal">${Math.round(q.kcal || 0)} kcal</span></button>`).join("")}</div>` : ""}
     </section>
     <section class="card meal-card">
       <h2>Your meal</h2>
@@ -828,11 +828,11 @@ function quickMeals(state) {
   const out = state.mealFavs.map((f) => ({ ...f, fav: true }));
   const seen = new Set(out.map((q) => q.name.toLowerCase()));
   for (const m of [...state.meals].reverse()) {
-    if (out.length >= 8) break;
+    if (out.length >= 20) break;
     const key = (m.name || "").toLowerCase();
     if (!key || key === "meal" || seen.has(key)) continue;
     seen.add(key);
     out.push(m);
   }
-  return out.slice(0, 8);
+  return out.slice(0, 20);
 }
