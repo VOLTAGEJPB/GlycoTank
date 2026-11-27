@@ -62,11 +62,34 @@ export async function pickPhoto(fromGallery) {
   });
 }
 
+// Decodes a photo as an <img>. Unlike createImageBitmap, WebKit always applies
+// the photo's rotation (EXIF orientation) here, so its size and pixels match
+// what the user sees on screen. `width`/`height` are the rotated size.
+export function openImage(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      // Off-screen images report their natural (rotated) size.
+      Object.defineProperty(img, "width", { value: img.naturalWidth });
+      Object.defineProperty(img, "height", { value: img.naturalHeight });
+      img.close = () => URL.revokeObjectURL(url);
+      img.url = url;
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Couldn't open that photo."));
+    };
+    img.src = url;
+  });
+}
+
 // Scales the photo down and re-encodes it as JPEG; returns base64 without the data: prefix.
 async function shrink(blob, maxSide) {
   let bmp;
   try {
-    bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
+    bmp = await openImage(blob);
   } catch {
     throw new ScanError("Couldn't open that photo. Try another one.");
   }

@@ -4,6 +4,7 @@ import { Capacitor } from "@capacitor/core";
 import { CLOUD } from "./cloud-config.js";
 import { idToken, current } from "./auth.js";
 import { localDate, lastNDays, dayTotals } from "./model.js";
+import { openImage } from "./photo.js";
 
 const PHOTO_KEY = "glycotank.friendPhotos";
 let data = null; // last GET /social answer
@@ -125,7 +126,7 @@ export async function photoFor(uid, ver) {
 
 // Square-crops and shrinks a picked photo to a 256 px JPEG (base64).
 export async function squareJpeg(blob) {
-  const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
+  const bmp = await openImage(blob);
   const side = Math.min(bmp.width, bmp.height);
   const canvas = Object.assign(document.createElement("canvas"), { width: 256, height: 256 });
   canvas.getContext("2d").drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 256, 256);
@@ -191,7 +192,7 @@ export async function postPhoto(author, id) {
 
 // Scales a photo for a post: up to 1080 px on the long side, JPEG.
 export async function postJpeg(blob) {
-  const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
+  const bmp = await openImage(blob);
   let q = 0.8, side = 1080, out;
   do {
     const scale = Math.min(1, side / Math.max(bmp.width, bmp.height));

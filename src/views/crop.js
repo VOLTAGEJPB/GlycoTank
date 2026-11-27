@@ -1,10 +1,12 @@
 // Circle crop for profile photos: drag to move, pinch or slide to zoom.
 // Resolves to a 256 px square JPEG (base64), or null if cancelled.
 import { esc } from "../ui.js";
+import { openImage } from "../photo.js";
 
 export async function cropCircle(blob) {
-  const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
-  const url = URL.createObjectURL(blob);
+  // The same decoded image is shown and cropped, so the crop matches the preview.
+  const bmp = await openImage(blob);
+  const url = bmp.url;
   return new Promise((resolve) => {
     const dlg = document.createElement("dialog");
     dlg.className = "crop-dlg";
@@ -88,8 +90,7 @@ export async function cropCircle(blob) {
     const done = (value) => {
       dlg.close();
       dlg.remove();
-      URL.revokeObjectURL(url);
-      bmp.close?.();
+      bmp.close();
       resolve(value);
     };
     dlg.addEventListener("cancel", (e) => (e.preventDefault(), done(null)));

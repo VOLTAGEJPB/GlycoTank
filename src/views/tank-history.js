@@ -1,6 +1,7 @@
 // Tank screen tabs: Tank (the main dashboard, drawn by tank.js), Nutrition
 // (calories and macros), Steps and Weight, each over a week, month or 3 months.
-import { localDate, lastNDays, dayTotals, upsertMeasurement } from "../model.js";
+import { localDate, lastNDays, dayTotals, upsertMeasurement, workoutCost } from "../model.js";
+import { workoutLine } from "./entries.js";
 import { $, $$, round, esc, success, toast } from "../ui.js";
 
 let tab = "tank";
@@ -9,6 +10,7 @@ let range = 7;
 const TABS = [
   ["tank", "Tank"],
   ["nutrition", "Nutrition"],
+  ["workouts", "Workouts"],
   ["steps", "Steps"],
   ["weight", "Weight"],
 ];
@@ -30,6 +32,8 @@ function metrics(state, days) {
     protein: totals.map((t) => (t.meals.length ? t.protein : null)),
     fat: totals.map((t) => (t.meals.length ? t.fat : null)),
     steps: days.map((d) => health[d]?.steps ?? null),
+    workouts: days.map((d) => state.workouts.filter((w) => w.date === d)),
+    settings: s,
     weights,
     targets: { kcal: s.kcalTarget, protein: s.proteinTarget },
     units: s.units || "lb",
@@ -136,6 +140,24 @@ function pane(m, key) {
       ${bars(d, m.steps, { color: "var(--water)", tall: true, tap: true, unit: " steps" })}${tip}
       ${listOf(d, m.steps, " steps")}
     </section>`;
+  }
+  if (key === "workouts") {
+    const all = m.workouts.flat();
+    const used = m.workouts.map((ws) => (ws.length ? ws.reduce((t, w) => t + workoutCost(w, m.settings), 0) : null));
+    const sets = all.filter((w) => w.type === "strength").reduce((t, w) => t + (+w.sets || 0), 0);
+    const mins = all.reduce((t, w) => t + (+w.mins || 0), 0);
+    // Sessions logged together count once.
+    const sessions = new Set(all.map((w) => w.sessionId || w.id)).size;
+    const days = [...d].reverse().map((day, i) => [day, m.workouts[d.length - 1 - i]]).filter(([, ws]) => ws.length);
+    return `<section class="card hdetail"><h2>Workouts</h2>
+        ${summary([["Workouts", String(sessions)], ["Active days", String(days.length)], [sets ? "Hard sets" : "Minutes", fmt(sets || mins)]])}
+        ${bars(d, used, { color: "var(--fat)", tall: true, tap: true, unit: " g fuel used" })}${tip}
+        <p class="hint">Bars show the glycogen each day's training used.</p>
+      </section>
+      <section class="card"><div class="card-head"><h2>History</h2><button class="btn small" data-go="log" data-section="workout">+ Log</button></div>
+        ${days.length ? days.map(([day, ws]) => `<div class="wk-day"><div class="wk-day-head"><strong>${day === localDate() ? "Today" : shortDate(day)}</strong><span>${new Date(day + "T12:00").toLocaleDateString(undefined, { weekday: "long" })}</span></div>
+          <ul class="entries">${ws.map((w) => workoutLine(w, m.settings)).join("")}</ul></div>`).join("") : `<p class="hint">No workouts in this range yet.</p>`}
+      </section>`;
   }
   // weight
   const ws = weightSummary(m, d);

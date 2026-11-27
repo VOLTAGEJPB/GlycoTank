@@ -1,9 +1,16 @@
 import { esc, round } from "../ui.js";
 
 export function workoutDetail(w, s) {
-  if (w.type === "strength") return `${round(w.sets)} × ${round(w.reps)}${w.weight ? ` @ ${round(w.weight, 1)} ${s.units}` : ""}`;
+  if (w.type === "strength") {
+    // Per-set detail when the sets differ, e.g. "3 sets: 8×185, 6×205, 5×215 lb".
+    const list = w.setList || [];
+    const same = list.every((x) => x.reps === list[0]?.reps && x.weight === list[0]?.weight);
+    if (list.length > 1 && !same) return `${list.length} sets: ${list.map((x) => `${x.reps || "?"}${x.weight ? `×${round(x.weight, 1)}` : ""}`).join(", ")}${list.some((x) => x.weight) ? ` ${s.units}` : ""}`;
+    return `${round(w.sets)} × ${round(w.reps)}${w.weight ? ` @ ${round(w.weight, 1)} ${s.units}` : ""}`;
+  }
   if (w.type === "cardio") return `${round(w.mins)} min · intensity ${w.intensity}`;
-  return w.type === "sport" ? "Sport" : "Other";
+  const label = w.type === "sport" ? "Sport" : "Other";
+  return w.mins ? `${label} · ${round(w.mins)} min` : label;
 }
 
 export function workoutLine(w, s) {
