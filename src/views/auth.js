@@ -33,6 +33,7 @@ export function openAuth() {
     let screen = "start";
     let email = "";
     let pendingPassword = "";
+    let resetCode = "";
 
     const views = {
       start: () => `
@@ -63,11 +64,16 @@ export function openAuth() {
         <h2>Reset your password</h2>
         <p class="ob-sub">We'll email you a code to set a new password.</p>
         <label class="field"><span>Email</span><input id="auEmail" type="email" inputmode="email" autocomplete="email" value="${esc(email)}" placeholder="you@example.com"></label>`,
-      reset: () => `
+      resetCode: () => `
+        <h2>Check your email</h2>
+        <p class="ob-sub">Enter the 6-digit code we sent to <strong>${esc(email)}</strong>.</p>
+        <label class="field"><span>Code</span><input id="auCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" class="code-input" placeholder="123456" value="${esc(resetCode)}"></label>
+        <p class="ob-sub"><a href="#" id="auResendReset">Send a new code</a></p>`,
+      newPassword: () => `
         <h2>Choose a new password</h2>
-        <p class="ob-sub">Enter the code we sent to <strong>${esc(email)}</strong> and your new password.</p>
-        <label class="field"><span>Code</span><input id="auCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" class="code-input" placeholder="123456"></label>
-        ${passwordField("auPassword", "New password", "new-password")}`,
+        <p class="ob-sub">For <strong>${esc(email)}</strong>.</p>
+        ${passwordField("auPassword", "New password", "new-password")}
+        ${passwordField("auPassword2", "Confirm new password", "new-password")}`,
     };
     const buttons = {
       start: [["signin", "I have an account", "ghost"], ["toSignup", "Create account", "primary"]],
@@ -75,7 +81,8 @@ export function openAuth() {
       verify: [["toStart", "Back", "ghost"], ["verify", "Verify", "primary"]],
       signin: [["toSignup", "New here?", "ghost"], ["signin", "Sign in", "primary"]],
       forgot: [["toSignin", "Back", "ghost"], ["forgot", "Send code", "primary"]],
-      reset: [["toSignin", "Back", "ghost"], ["reset", "Save password", "primary"]],
+      resetCode: [["toForgot", "Back", "ghost"], ["resetCode", "Continue", "primary"]],
+      newPassword: [["toResetCode", "Back", "ghost"], ["reset", "Save password", "primary"]],
     };
 
     function render(dir = "from-right") {
@@ -100,6 +107,13 @@ export function openAuth() {
         e.preventDefault();
         run(null, async () => {
           await auth.resendCode(email);
+          toast("New code sent");
+        });
+      });
+      $("#auResendReset", root)?.addEventListener("click", (e) => {
+        e.preventDefault();
+        run(null, async () => {
+          await auth.forgotPassword(email);
           toast("New code sent");
         });
       });
@@ -204,16 +218,39 @@ export function openAuth() {
           pendingPassword = "";
           done();
         });
+      if (a === "toForgot") return go("forgot", "from-left");
+      if (a === "toResetCode") return go("resetCode", "from-left");
       if (a === "forgot")
         return run(btn, async () => {
           email = val("auEmail").trim();
+          if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error("Enter a valid email address.");
           await auth.forgotPassword(email);
-          go("reset");
+          resetCode = "";
+          go("resetCode");
+        });
+      if (a === "resetCode")
+        return run(btn, async () => {
+          const code = val("auCode").replace(/\D/g, "");
+          if (code.length !== 6) throw new Error("Enter the 6-digit code from the email.");
+          resetCode = code;
+          go("newPassword");
         });
       if (a === "reset")
         return run(btn, async () => {
           const password = val("auPassword");
-          await auth.resetPassword(email, val("auCode"), password);
+          if (password.length < 8 || !/\d/.test(password) || !/[a-z]/.test(password)) throw new Error("Use at least 8 characters, including a lowercase letter and a number.");
+          if (password !== val("auPassword2")) throw new Error("The passwords don't match.");
+          try {
+            await auth.resetPassword(email, resetCode, password);
+          } catch (e) {
+            // The code is only checked here; send the user back to fix it.
+            if (e.code === "CodeMismatchException" || e.code === "ExpiredCodeException") {
+              if (e.code === "ExpiredCodeException") await auth.forgotPassword(email).catch(() => {});
+              resetCode = "";
+              go("resetCode", "from-left");
+            }
+            throw e;
+          }
           await auth.signIn(email, password);
           toast("Password updated");
           done();
