@@ -14,6 +14,8 @@ export const DEFAULT_SETTINGS = {
   dailyUse: 150, // grams/day used by the brain and everyday activity when the tank is full (scales with how full it is)
   units: "lb", // display units for body weight and lifts
   theme: "dark", // "dark", "light" or "system"
+  restSecs: 90, // rest timer countdown
+  restAuto: true, // start the rest timer when a set is marked done
   reminders: { log: "", checkin: "" }, // "HH:MM" or ""
 };
 

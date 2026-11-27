@@ -1,11 +1,12 @@
 // Friends screen: your profile, add friends, requests, and each friend's
 // streak, shared streak and (if they share it) today's summary.
 import { $, $$, esc, toast, success, confirmDialog } from "../ui.js";
-import { loadSocial, socialData, socialAvailable, act, photoFor, squareJpeg, enablePush, sendActivityNow, SocialError } from "../social.js";
+import { loadSocial, socialData, socialAvailable, act, photoFor, enablePush, sendActivityNow, SocialError } from "../social.js";
 import { pickPhoto } from "../photo.js";
 import { streak, localDate } from "../model.js";
 import { Capacitor } from "@capacitor/core";
 import { renderFeed } from "./feed.js";
+import { cropCircle } from "./crop.js";
 
 const EMOJIS = ["💪", "🔥", "🏃", "🚴", "🏋️", "⚡", "🥑", "🍎", "🌱", "🏊", "🧘", "⭐", "🦁", "🐺", "🦅", "🐻", "🦊", "🐢", "🚀", "🎯"];
 const COLORS = ["#57cc99", "#5cb8ff", "#ffb547", "#ff8f7e", "#b99cff", "#ff6b9a", "#4fd1c5", "#a3e635"];
@@ -290,9 +291,11 @@ function drawEditor(root, app, me) {
     try {
       const blob = await pickPhoto(true);
       if (!blob) return;
+      const data = await cropCircle(blob);
+      if (!data) return;
       btn.disabled = true;
       btn.textContent = "Checking photo…";
-      await act("photo", { data: await squareJpeg(blob) });
+      await act("photo", { data });
       success("Photo updated");
       drawEditor(root, app, socialData().me);
     } catch (err) {

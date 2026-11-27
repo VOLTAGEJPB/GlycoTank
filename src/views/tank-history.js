@@ -1,7 +1,7 @@
 // Tank screen tabs: Tank (the main dashboard, drawn by tank.js), Nutrition
 // (calories and macros), Steps and Weight, each over a week, month or 3 months.
-import { localDate, lastNDays, dayTotals } from "../model.js";
-import { $, $$, round } from "../ui.js";
+import { localDate, lastNDays, dayTotals, upsertMeasurement } from "../model.js";
+import { $, $$, round, esc, success, toast } from "../ui.js";
 
 let tab = "tank";
 let range = 7;
@@ -144,8 +144,17 @@ function pane(m, key) {
       (ws.inRange.length > 1 ? `<div class="wline-wrap">${line(ws.inRange, m.units)}</div>` : `<p class="hint">Log a few weigh-ins in this range to see a trend.</p>`) +
       `<ul class="hday-list">${[...ws.inRange].reverse().slice(0, 7).map((x) => `<li><span>${shortDate(x.date)}</span><strong>${round(x.weight, 1)} ${m.units}</strong></li>`).join("")}</ul>`
     : `<p class="hint">Log your weight to see your trend here.</p>`;
-  return `<section class="card hdetail"><h2>Weight</h2>${body}
-    <button type="button" class="btn primary wide" data-go="more" data-section="body">Log my weight</button></section>`;
+  const today = localDate();
+  const last = m.weights.at(-1);
+  return `<section class="card wlog-card"><h2>Log weight</h2>
+      <form class="wlog" id="wlForm">
+        <label class="pill-select date"><span id="wlDateText">Today</span><input id="wlDate" type="date" value="${today}" max="${today}" aria-label="Date"></label>
+        <div class="wlog-input"><input id="wlWeight" type="number" inputmode="decimal" step="0.1" min="0" placeholder="${last ? esc(round(last.weight, 1)) : "0"}" aria-label="Weight"><span>${esc(m.units)}</span></div>
+        <button class="btn primary" type="submit">Save</button>
+      </form>
+      <p class="hint wlog-more">Waist, body fat and more in <a href="#" data-go="more" data-section="body">Weight &amp; measurements</a>.</p>
+    </section>
+    <section class="card hdetail"><h2>Weight</h2>${body}</section>`;
 }
 
 // ---------- Render ----------
@@ -178,7 +187,25 @@ export function tankTabs(host, onChange) {
 // Nutrition, Steps or Weight, over a week, a month or 3 months.
 export function renderTankPane(host, app, onChange) {
   const m = metrics(app.state, lastNDays(localDate(), range));
-  host.innerHTML = rangePick() + pane(m, tab);
+  host.innerHTML = tab === "weight" ? pane(m, tab).replace('<section class="card hdetail">', rangePick() + '<section class="card hdetail">') : rangePick() + pane(m, tab);
+  // Weight: quick weigh-in right here.
+  $("#wlDate", host)?.addEventListener("change", (e) => {
+    const d = e.target.value || localDate();
+    $("#wlDateText", host).textContent = d === localDate() ? "Today" : shortDate(d);
+  });
+  $("#wlForm", host)?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const weight = +$("#wlWeight", host).value;
+    if (!(weight > 0)) return toast("Enter your weight");
+    const { state } = app;
+    const measurements = upsertMeasurement(state.profile?.measurements, { date: $("#wlDate", host).value || localDate(), weight });
+    const newest = measurements.filter((x) => x.weight).at(-1);
+    // The newest weigh-in also keeps Goals' body weight current.
+    state.profile = { ...state.profile, measurements, ...(newest ? { weight: newest.weight, weightUnits: state.settings.units } : {}) };
+    app.save();
+    success("Weight saved");
+    onChange();
+  });
   $$("[data-range]", host).forEach((b) =>
     b.addEventListener("click", () => {
       range = +b.dataset.range;
