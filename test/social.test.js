@@ -40,3 +40,19 @@ test("today in a time zone", () => {
   assert.equal(todayIn("Asia/Tokyo", now), "2026-11-27");
   assert.equal(todayIn("Not/AZone", now), "2026-11-27");
 });
+
+import { blockedText, cleanText, cleanItem } from "../backend/src/social-core.mjs";
+test("post text filter", () => {
+  assert.ok(blockedText("you are a f4ggot"));
+  assert.ok(blockedText("just kys"));
+  assert.equal(blockedText("spicy chicken bowl"), false);
+  assert.equal(blockedText("Great workout today 💪"), false);
+  assert.equal(cleanText("  hi\n\n\n\nthere ").text, "hi\n\nthere");
+  assert.ok(cleanText("total slut").error);
+});
+test("shared items keep only what friends see", () => {
+  const m = cleanItem("meal", { name: "Chicken bowl", kcal: "650.4", carbs: 70, protein: 45, fat: 18, notes: "secret", slot: "lunch" });
+  assert.deepEqual(m, { name: "Chicken bowl", kcal: 650.4, carbs: 70, protein: 45, fat: 18, slot: "lunch" });
+  const w = cleanItem("workout", { name: "Push day", type: "strength", exercises: [{ name: "Bench", sets: 4, reps: 8, weight: 185 }] });
+  assert.equal(w.exercises[0].weight, 185);
+});

@@ -66,7 +66,18 @@ const app = {
     $("#title").textContent = VIEWS[view].title;
     // Pages inside More get a back button in the sticky top bar, so it stays in reach while scrolling.
     $("#topBack").hidden = !(view === "more" && app.moreSection);
-    $("#topFriends").setAttribute("aria-current", view === "friends" ? "page" : "false");
+    // Check-in lives under Tank now: its back button returns there.
+    const back = $("#topBack");
+    if (view === "checkin") {
+      back.hidden = false;
+      back.textContent = "‹ Tank";
+      back.dataset.go = "tank";
+      back.setAttribute("aria-label", "Back to Tank");
+    } else {
+      back.textContent = "‹ More";
+      back.dataset.go = "more";
+      back.setAttribute("aria-label", "Back to More");
+    }
     const root = $("#view");
     VIEWS[view].render(root, app);
     if (!app.launching) enterView(root);
@@ -218,7 +229,6 @@ window.addEventListener("themechange", () => app.state && app.refresh());
     });
     await requireAccount();
     // Friends: request badge, push registration, and keeping streaks current.
-    $("#topFriends").hidden = false;
     onSocial((d) => {
       const n = d?.incoming?.length || 0;
       $("#friendsBadge").hidden = !n;

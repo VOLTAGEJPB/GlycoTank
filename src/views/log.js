@@ -1,3 +1,4 @@
+import { socialData, post as sharePost, shareMeal, shareWorkout } from "../social.js";
 import { localDate, plateMath, parseMealText, mealSlot, slotForHour, MEAL_SLOTS } from "../model.js";
 import { native, scanBarcode, lookupBarcode, scanLabel, ScanError } from "../scan.js";
 import { loadFoods, searchFoods, menuItemFor, portionsFor, nutritionFor, portionLabel, sumItems } from "../foods.js";
@@ -114,6 +115,7 @@ function renderMeal(root, app) {
       <p class="hint" id="mEstimate"></p>
         ${field("mNotes", "Notes", 'placeholder="Optional"', v.notes)}
       </details>
+      ${shareToggle("mShare", !m)}
       <div class="actions">
         <button class="btn primary wide" id="mSave">${m ? "Update" : "Save"}</button>
         <button class="btn ghost" id="mFavSave">★ Save as favorite</button>
@@ -564,6 +566,7 @@ function renderMeal(root, app) {
     else state.meals.push({ id: uid(), ...data });
     app.editing = null;
     app.save();
+    shareIf("mShare", () => shareMeal(data));
     success(m ? "Updated" : `Added to ${MEAL_SLOTS.find(([k]) => k === data.slot)[1]}`);
     app.go("meals");
   });
@@ -632,6 +635,7 @@ function renderWorkout(root, app) {
       </div>
 
       ${field("wNotes", "Notes", 'placeholder="Optional"', v.notes)}
+      ${shareToggle("wShare", !w)}
       <div class="actions">
         <button class="btn primary" id="wSave">${w ? "Update workout" : "Save"}</button>
         ${w ? "" : `<button class="btn ghost" id="wFavSave">Save as favorite</button>`}
@@ -748,6 +752,7 @@ function renderWorkout(root, app) {
       const sessionName = $("#wSessionName").value.trim() || "Session";
       for (const r of rows) state.workouts.push({ id: uid(), date, type: "strength", ...r, name: r.name || "Strength", sessionId, sessionName, notes });
       app.save();
+      shareIf("wShare", () => shareWorkout(rows.map((r) => ({ ...r, name: r.name || "Strength" })), s.units, sessionName));
       success(`Session saved (${rows.length} exercise${rows.length === 1 ? "" : "s"})`);
       return app.go("tank");
     }
@@ -758,6 +763,7 @@ function renderWorkout(root, app) {
     } else state.workouts.push({ id: uid(), ...data });
     app.editing = null;
     app.save();
+    shareIf("wShare", () => shareWorkout([data], s.units));
     success(w ? "Workout updated" : "Workout saved");
     app.go("tank");
   });
@@ -835,4 +841,34 @@ function quickMeals(state) {
     out.push(m);
   }
   return out.slice(0, 20);
+}
+
+// ---------- Share with friends ----------
+const SHARE_KEY = "glycotank.shareDefault";
+// A "Share with friends" switch above Save, for new entries once a Friends
+// profile exists. Remembers the last choice.
+function shareToggle(id, show) {
+  if (!show || !socialData()?.me) return "";
+  let on = false;
+  try {
+    on = localStorage.getItem(SHARE_KEY) === "1";
+  } catch {}
+  return `<label class="share-toggle"><input type="checkbox" id="${id}" ${on ? "checked" : ""}><span>Share with friends</span><input id="${id}Text" maxlength="500" placeholder="Add a caption (optional)" ${on ? "" : "hidden"}></label>`;
+}
+document.addEventListener("change", (e) => {
+  if (!e.target.matches?.(".share-toggle input[type=checkbox]")) return;
+  const caption = document.getElementById(e.target.id + "Text");
+  if (caption) caption.hidden = !e.target.checked;
+  try {
+    localStorage.setItem(SHARE_KEY, e.target.checked ? "1" : "0");
+  } catch {}
+});
+// Posts the entry to the Friends feed in the background if the switch is on.
+function shareIf(id, build) {
+  const box = document.getElementById(id);
+  if (!box?.checked) return;
+  const text = document.getElementById(id + "Text")?.value.trim() || "";
+  sharePost({ ...build(), text })
+    .then(() => toast("Shared with friends"))
+    .catch((e) => toast(e.message || "Couldn't share with friends"));
 }

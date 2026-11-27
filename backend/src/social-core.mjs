@@ -67,3 +67,31 @@ export function cleanSummary(s) {
   const num = (v) => (Number.isFinite(+v) ? Math.max(0, Math.min(99999, Math.round(+v))) : 0);
   return { date: s.date.slice(0, 10), kcal: num(s.kcal), protein: num(s.protein), carbs: num(s.carbs), workouts: num(s.workouts) };
 }
+
+// ---------- Posts ----------
+export const REACTIONS = ["🔥", "💪", "👏", "😋"];
+// A short list of slurs and explicit terms that are never allowed in posts,
+// comments or names. Everything else relies on reports and blocking.
+const BLOCKED_WORDS = ["nigger", "nigga", "faggot", "fag", "retard", "chink", "spic", "kike", "tranny", "cunt", "whore", "slut", "porn", "nudes", "onlyfans", "kys", "kill yourself"];
+const squash = (s) => s.toLowerCase().replace(/[@4]/g, "a").replace(/3/g, "e").replace(/[1!|]/g, "i").replace(/0/g, "o").replace(/[$5]/g, "s").replace(/[^a-z ]/g, "");
+export function blockedText(s) {
+  const t = ` ${squash(String(s || ""))} `;
+  return BLOCKED_WORDS.some((w) => t.includes(` ${w} `) || (w.length > 5 && t.replace(/ /g, "").includes(w)));
+}
+export function cleanText(raw, max = 500) {
+  const text = String(raw || "").replace(/[\u0000-\u0008\u000b-\u001f]/g, "").replace(/\n{3,}/g, "\n\n").trim().slice(0, max);
+  if (blockedText(text)) return { error: "Please keep it friendly. That wording isn't allowed." };
+  return { text };
+}
+// The meal or workout a post shares, reduced to what friends see.
+export function cleanItem(kind, it) {
+  if (!it || typeof it !== "object") return null;
+  const num = (v, max = 99999) => (Number.isFinite(+v) ? Math.max(0, Math.min(max, Math.round(+v * 10) / 10)) : undefined);
+  const name = cleanText(it.name, 80).text || (kind === "meal" ? "Meal" : "Workout");
+  if (kind === "meal") return { name, kcal: num(it.kcal), carbs: num(it.carbs), protein: num(it.protein), fat: num(it.fat), slot: ["breakfast", "lunch", "dinner", "snack"].includes(it.slot) ? it.slot : undefined };
+  if (kind === "workout") {
+    const exercises = Array.isArray(it.exercises) ? it.exercises.slice(0, 20).map((e) => ({ name: cleanText(e.name, 60).text || "Exercise", sets: num(e.sets, 100), reps: num(e.reps, 1000), weight: num(e.weight, 5000) })) : undefined;
+    return { name, type: ["strength", "cardio", "sport", "other"].includes(it.type) ? it.type : "other", sets: num(it.sets, 500), reps: num(it.reps, 1000), weight: num(it.weight, 5000), mins: num(it.mins, 1440), intensity: num(it.intensity, 5), units: it.units === "kg" ? "kg" : "lb", exercises };
+  }
+  return null;
+}

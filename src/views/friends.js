@@ -5,15 +5,19 @@ import { loadSocial, socialData, socialAvailable, act, photoFor, squareJpeg, ena
 import { pickPhoto } from "../photo.js";
 import { streak, localDate } from "../model.js";
 import { Capacitor } from "@capacitor/core";
+import { renderFeed } from "./feed.js";
 
 const EMOJIS = ["💪", "🔥", "🏃", "🚴", "🏋️", "⚡", "🥑", "🍎", "🌱", "🏊", "🧘", "⭐", "🦁", "🐺", "🦅", "🐻", "🦊", "🐢", "🚀", "🎯"];
 const COLORS = ["#57cc99", "#5cb8ff", "#ffb547", "#ff8f7e", "#b99cff", "#ff6b9a", "#4fd1c5", "#a3e635"];
 let editing = false;
 let draft = null;
 let prefill = "";
+let pane = "feed"; // "feed" | "friends"
+let topRoot = null;
 
 // Opened from an invite link (glycotank://add/<username>).
-export const prefillFriend = (handle) => (prefill = handle);
+export const prefillFriend = (handle) => ((prefill = handle), (pane = "friends"));
+export const showFriendsPane = (p) => (pane = p);
 
 const fmt = (n) => Math.round(n).toLocaleString();
 const avatar = (p, size = 48) =>
@@ -49,14 +53,36 @@ export async function renderFriends(root, app) {
     }
   }
   if (!root.isConnected) return;
-  draw(root, app);
+  topRoot = root;
+  shell(root, app);
   // Refresh quietly in the background so streaks are current.
-  loadSocial(true).then(() => root.isConnected && !editing && draw(root, app)).catch(() => {});
+  if (pane === "friends") loadSocial(true).then(() => root.isConnected && !editing && pane === "friends" && shell(root, app)).catch(() => {});
+}
+
+// Feed | Friends switch, or the profile editor when there's no profile yet.
+function shell(root, app) {
+  const d = socialData();
+  if (!d?.me || editing) return drawEditor(root, app, d?.me);
+  const n = d.incoming.length;
+  root.innerHTML = `<div class="segmented fr-seg" style="--pos:${pane === "feed" ? 0 : 1}" role="tablist">
+      <button role="tab" data-pane="feed" aria-selected="${pane === "feed"}">Feed</button>
+      <button role="tab" data-pane="friends" aria-selected="${pane === "friends"}">Friends${n ? ` <span class="seg-badge">${n}</span>` : ""}</button>
+    </div><div id="frPane"></div>`;
+  $$("[data-pane]", root).forEach((b) =>
+    b.addEventListener("click", () => {
+      if (pane === b.dataset.pane) return;
+      pane = b.dataset.pane;
+      shell(root, app);
+    }),
+  );
+  const host = $("#frPane", root);
+  if (pane === "feed") renderFeed(host, app);
+  else draw(host, app);
 }
 
 function draw(root, app) {
   const d = socialData();
-  if (!d?.me || editing) return drawEditor(root, app, d?.me);
+  if (!d?.me || editing) return shell(topRoot, app);
   const me = d.me;
   const myStreak = streak(app.state, localDate());
   root.innerHTML = `
@@ -256,7 +282,7 @@ function drawEditor(root, app, me) {
   $("#frCancel")?.addEventListener("click", () => {
     editing = false;
     draft = null;
-    draw(root, app);
+    shell(root, app);
   });
   $("#frPhoto")?.addEventListener("click", async (e) => {
     sync();
@@ -298,7 +324,8 @@ function drawEditor(root, app, me) {
       await sendActivityNow(app);
       await loadSocial(true);
       success(isNew ? "Profile created" : "Saved");
-      draw(root, app);
+      if (isNew) pane = "friends";
+      shell(root, app);
       if (isNew) enablePush(app).catch(() => {});
     } catch (err) {
       toast(err.message || "Couldn't save.");

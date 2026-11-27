@@ -128,7 +128,8 @@ page(
 
 <h2 id="friends">Friends</h2>
 <p>Friends is optional. If you set up a profile, we store your name, username, chosen emoji and color, and a profile photo if you add one. Profile photos are checked automatically by an image moderation service (Amazon Rekognition) before anyone else can see them, and photos that appear to contain inappropriate content are rejected. People can find you only by your exact username, and only people you accept as friends can see your profile.</p>
-<p>To show streaks, the app sends us the dates you logged something (a meal, workout or check-in) over the last 120 days and your time zone. Your friends see your streak, whether you've logged today, and the shared streak you have with them. If you turn on <em>Share my daily summary</em>, they also see today's calories, protein, carbs and number of workouts. Your meals, weight and other details are never shared with friends.</p>
+<p>To show streaks, the app sends us the dates you logged something (a meal, workout or check-in) over the last 120 days and your time zone. Your friends see your streak, whether you've logged today, and the shared streak you have with them. If you turn on <em>Share my daily summary</em>, they also see today's calories, protein, carbs and number of workouts. Your meals, weight and other details are not shared with friends unless you post them.</p>
+<p><strong>Posts.</strong> You can share a meal or workout when you save it, or post a text update with an optional photo. Posts, reactions and comments are visible only to you and your friends. Post photos are checked by the same moderation service, and text containing slurs or explicit terms is blocked. You can delete your own posts and comments at any time, and the author of a post can delete comments on it. Posts are deleted when you delete your account.</p>
 <p>You can remove, block or report anyone. Reports are reviewed within 24 hours and accounts or content that break the rules are removed. Deleting your account deletes your profile, photo, username and friendships.</p>
 
 <h2>Notifications</h2>
@@ -174,7 +175,7 @@ page(
 <p>Make sure reminder times are set in <em>Settings → Reminders</em> and that notifications are allowed for GlycoTank in your phone's settings. Some Android phones also stop notifications for apps with battery optimization turned on.</p>
 
 <h2>How do Friends and streaks work?</h2>
-<p>Open Friends from the people icon at the top of the app, pick a username, and add friends by their username or send them an invite link. Your streak counts the days in a row you log a meal, workout or check-in. With each friend you also get a shared 🤝 streak that grows every day you both log. Tap 👋 Nudge to remind a friend who hasn't logged yet. To remove, block or report someone, tap their name.</p>
+<p>Open the Friends tab, pick a username, and add friends by their username or send them an invite link. Your streak counts the days in a row you log a meal, workout or check-in. With each friend you also get a shared 🤝 streak that grows every day you both log. Tap 👋 Nudge to remind a friend who hasn't logged yet. In the Feed you can post updates, share meals and workouts when you save them, react and comment. To remove, block or report someone, tap their name.</p>
 
 <h2>How do I delete my account?</h2>
 <p>Use <em>Settings → Account → Delete account</em>. This permanently deletes your account and all your data. See our <a href="/privacy/">privacy policy</a> for details.</p>

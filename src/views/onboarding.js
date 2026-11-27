@@ -157,7 +157,8 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
       <h2>You're all set!</h2>
       <ul class="ob-tips">
         <li><strong>Log</strong> with the + tab: search a food or brand, scan a barcode, or snap a photo (3 free photo scans a day).</li>
-        <li><strong>Check in</strong> each morning for your readiness score.</li>
+        <li><strong>Check in</strong> each morning: tap Readiness on the Tank tab.</li>
+        <li><strong>Friends</strong>: add friends, keep streaks going together, and share meals and workouts.</li>
         <li>Everything is free. Your tank gets more accurate the more you log.</li>
       </ul>`,
   };

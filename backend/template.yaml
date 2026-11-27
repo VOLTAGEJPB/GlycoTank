@@ -371,6 +371,7 @@ Resources:
       Events:
         GetSocial: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /social, Method: GET } }
         GetPhoto: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /social/photo, Method: GET } }
+        GetFeed: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /social/feed, Method: GET } }
         PostSocial: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /social, Method: POST } }
         StreakReminders: { Type: Schedule, Properties: { Schedule: rate(1 hour) } }
 

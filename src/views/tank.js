@@ -4,7 +4,6 @@ import {
 } from "../model.js";
 import { $, esc, round, num, select } from "../ui.js";
 import { animate, countUp } from "../motion.js";
-import { workoutLine } from "./entries.js";
 import { fillHealthCard } from "./health-ui.js";
 import { tankTabs, renderTankPane, currentTankTab } from "./tank-history.js";
 
@@ -30,7 +29,6 @@ function renderTankHome(root, app) {
   const series = glycoSeries(state, today);
   const level = series[today].end;
   const status = glycoStatus(level, s.glycoCap);
-  const workouts = state.workouts.filter((w) => w.date === today);
   const tomorrow = addDays(today, 1);
   const tomorrowWorkouts = state.workouts.filter((w) => w.date === tomorrow);
   const ready = readinessFor(state, latestCheck(state));
@@ -74,16 +72,12 @@ function renderTankHome(root, app) {
     </section>
 
     <section class="card two">
-      <div><div class="label">Readiness</div><div class="kpi">${ready ? ready.score : "–"}</div><div class="sub">${ready ? esc(ready.label) : `<a href="#" data-go="checkin">Do a check-in</a>`}</div></div>
+      <button type="button" class="tile-link" data-go="checkin"><div class="label">Readiness ›</div><div class="kpi">${ready ? ready.score : "–"}</div><div class="sub">${ready ? `${esc(ready.label)} · check in` : `<span class="link">Do today's check-in</span>`}</div></button>
       <div><div class="label">Streak</div><div class="kpi">${streak(state, today)}</div><div class="sub">days logged</div></div>
       <div><div class="label">Workouts (7d)</div><div class="kpi">${weekWorkouts}</div></div>
       <div><div class="label">Protein (7d)</div><div class="kpi">${round(weekProtein)}<small>g</small></div></div>
     </section>
 
-    <section class="card">
-      <div class="card-head"><h2>Today's training</h2><button class="btn small" data-go="log" data-section="workout">+ Add</button></div>
-      ${workouts.length ? `<ul class="entries">${workouts.map((w) => workoutLine(w, s)).join("")}</ul>` : `<p class="hint">No training logged yet.</p>`}
-    </section>
 
   `;
 

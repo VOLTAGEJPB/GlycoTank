@@ -5,7 +5,9 @@
 //   GET  /social/photo?uid=…     a friend's (or my) profile photo
 //   POST /social { action, … }   setProfile, photo, removePhoto, activity,
 //                                pushToken, request, respond, remove, block,
-//                                report, nudge, deleteAll
+//                                report, nudge, deleteAll, post, deletePost,
+//                                react, comment, deleteComment, reportPost
+//   GET  /social/feed?before=…   posts from me and my friends, newest first
 //   (scheduled hourly)           "your streak ends tonight" reminders
 //
 // Table rows (pk / sk):
@@ -24,7 +26,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, DeleteCommand, QueryCommand, UpdateCommand, BatchGetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { RekognitionClient, DetectModerationLabelsCommand } from "@aws-sdk/client-rekognition";
 import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
-import { cleanHandle, cleanName, EMOJIS, COLORS, todayIn, hourIn, runLength, sharedStreak, cleanDays, cleanSummary } from "./social-core.mjs";
+import { cleanHandle, cleanName, EMOJIS, COLORS, todayIn, hourIn, runLength, sharedStreak, cleanDays, cleanSummary, REACTIONS, cleanText, cleanItem, blockedText } from "./social-core.mjs";
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}), { marshallOptions: { removeUndefinedValues: true } });
 const rek = new RekognitionClient({});
@@ -186,6 +188,7 @@ async function setProfile(uid, b) {
   if (b.handle !== undefined) {
     const { handle, error } = cleanHandle(b.handle);
     if (error) fail(400, error);
+    if (blockedText(handle.replace(/[._]/g, " "))) fail(400, "That username isn't available.");
     if (handle !== me?.handle) {
       try {
         await put({ pk: `H#${handle}`, sk: "H", uid }, { ConditionExpression: "attribute_not_exists(pk)" });
@@ -197,7 +200,10 @@ async function setProfile(uid, b) {
     }
     fields.handle = handle;
   } else if (!me) fail(400, "Pick a username.");
-  if (b.name !== undefined) fields.name = cleanName(b.name);
+  if (b.name !== undefined) {
+    fields.name = cleanName(b.name);
+    if (blockedText(fields.name)) fail(400, "Please choose a different name.");
+  }
   if (b.emoji !== undefined) fields.emoji = EMOJIS.includes(b.emoji) ? b.emoji : EMOJIS[0];
   if (b.color !== undefined) fields.color = COLORS.includes(b.color) ? b.color : COLORS[0];
   if (b.share !== undefined) fields.share = !!b.share;
@@ -377,7 +383,177 @@ async function streakReminders() {
   return { sent };
 }
 
-const ACTIONS = { setProfile, photo: setPhoto, removePhoto, activity, pushToken, request, respond, remove, block, report, nudge, deleteAll };
+// ---------- Posts, reactions and comments ----------
+// U#uid / POST#<13-digit ms>   post: kind, text, item, photo, reactions {uid: emoji}, comments []
+// U#uid / PP#<id>              the post's photo (base64 JPEG)
+const POSTS_PER_USER = 15;
+const FEED_SIZE = 30;
+const MAX_COMMENTS = 200;
+const postKey = (id) => `POST#${id}`;
+const newId = () => String(Date.now()).padStart(13, "0");
+
+async function canSee(uid, author) {
+  if (uid === author) return true;
+  return (await get(`U#${uid}`, `F#${author}`))?.state === "friend";
+}
+
+async function moderatePhoto(b64) {
+  const bytes = Buffer.from(String(b64 || ""), "base64");
+  if (bytes.length < 500 || bytes.length > 200_000 || bytes[0] !== 0xff || bytes[1] !== 0xd8) fail(400, "That photo couldn't be used. Try another one.");
+  const mod = await rek.send(new DetectModerationLabelsCommand({ Image: { Bytes: bytes }, MinConfidence: 60 }));
+  if ((mod.ModerationLabels || []).some((l) => !l.ParentName)) fail(422, "That photo can't be posted. Please choose a different one.");
+  return bytes.toString("base64");
+}
+
+async function createPost(uid, b) {
+  await requireProfile(uid);
+  const kind = ["meal", "workout", "text"].includes(b.kind) ? b.kind : "text";
+  const { text, error } = cleanText(b.text);
+  if (error) fail(400, error);
+  const item = kind === "text" ? null : cleanItem(kind, b.item);
+  if (!text && !item && !b.photo) fail(400, "Write something or add a photo.");
+  const recent = await db.send(new QueryCommand({ TableName: TABLE, KeyConditionExpression: "pk = :p AND begins_with(sk, :s)", ExpressionAttributeValues: { ":p": `U#${uid}`, ":s": "POST#" }, ScanIndexForward: false, Limit: 1 }));
+  if (recent.Items[0] && Date.now() - recent.Items[0].createdAt < 5000) fail(429, "Slow down a little.");
+  const id = newId();
+  const photo = b.photo ? await moderatePhoto(b.photo) : null;
+  if (photo) await put({ pk: `U#${uid}`, sk: `PP#${id}`, data: photo });
+  await put({ pk: `U#${uid}`, sk: postKey(id), id, kind, text, item, photo: !!photo, reactions: {}, comments: [], createdAt: Date.now() });
+  return { ok: true, id };
+}
+
+async function deletePost(uid, b) {
+  const id = String(b.id || "");
+  await del(`U#${uid}`, postKey(id));
+  await del(`U#${uid}`, `PP#${id}`);
+  return { ok: true };
+}
+
+async function react(uid, b) {
+  const author = String(b.author || ""), id = String(b.id || "");
+  if (!(await canSee(uid, author))) fail(404, "Post not found");
+  const emoji = REACTIONS.includes(b.emoji) ? b.emoji : null;
+  try {
+    await db.send(new UpdateCommand({
+      TableName: TABLE, Key: { pk: `U#${author}`, sk: postKey(id) },
+      UpdateExpression: emoji ? "SET reactions.#u = :e" : "REMOVE reactions.#u",
+      ConditionExpression: "attribute_exists(pk)",
+      ExpressionAttributeNames: { "#u": uid },
+      ...(emoji ? { ExpressionAttributeValues: { ":e": emoji } } : {}),
+    }));
+  } catch (e) {
+    if (e.name === "ConditionalCheckFailedException") fail(404, "That post was deleted.");
+    throw e;
+  }
+  return { ok: true };
+}
+
+async function comment(uid, b) {
+  const me = await requireProfile(uid);
+  const author = String(b.author || ""), id = String(b.id || "");
+  if (!(await canSee(uid, author))) fail(404, "Post not found");
+  const { text, error } = cleanText(b.text, 300);
+  if (error) fail(400, error);
+  if (!text) fail(400, "Write a comment first.");
+  const c = { id: `${Date.now()}${Math.floor(Math.random() * 1000)}`, uid, text, at: Date.now() };
+  try {
+    await db.send(new UpdateCommand({
+      TableName: TABLE, Key: { pk: `U#${author}`, sk: postKey(id) },
+      UpdateExpression: "SET comments = list_append(comments, :c)",
+      ConditionExpression: "attribute_exists(pk) AND size(comments) < :max",
+      ExpressionAttributeValues: { ":c": [c], ":max": MAX_COMMENTS },
+    }));
+  } catch (e) {
+    if (e.name === "ConditionalCheckFailedException") fail(404, "That post was deleted or is full.");
+    throw e;
+  }
+  if (author !== uid) await pushSafe(author, `${me.name || me.handle} commented`, text.slice(0, 120), { route: "friends" });
+  return { ok: true, comment: c };
+}
+
+async function deleteComment(uid, b) {
+  const author = String(b.author || ""), id = String(b.id || ""), cid = String(b.cid || "");
+  const post = await get(`U#${author}`, postKey(id));
+  if (!post) fail(404, "That post was deleted.");
+  const c = (post.comments || []).find((x) => x.id === cid);
+  if (!c) return { ok: true };
+  if (c.uid !== uid && author !== uid) fail(403, "You can only delete your own comments.");
+  const i = post.comments.indexOf(c);
+  await db.send(new UpdateCommand({
+    TableName: TABLE, Key: { pk: `U#${author}`, sk: postKey(id) },
+    UpdateExpression: `REMOVE comments[${i}]`,
+    ConditionExpression: `comments[${i}].id = :cid`,
+    ExpressionAttributeValues: { ":cid": cid },
+  }));
+  return { ok: true };
+}
+
+async function reportPost(uid, b) {
+  const author = String(b.author || ""), id = String(b.id || ""), cid = b.cid ? String(b.cid) : null;
+  const post = await get(`U#${author}`, postKey(id));
+  if (!post) fail(404, "That post was deleted.");
+  const c = cid ? (post.comments || []).find((x) => x.id === cid) : null;
+  const target = c ? c.uid : author;
+  const p = await profile(target);
+  await put({ pk: "REPORT", sk: `${Date.now()}#${uid}`, reporter: uid, target, handle: p?.handle, reason: String(b.reason || "").slice(0, 300), post: { author, id, cid, text: (c ? c.text : post.text || "").slice(0, 300), photo: !c && post.photo } });
+  return { ok: true };
+}
+
+async function getPostPhoto(uid, author, id) {
+  if (!(await canSee(uid, author))) fail(404, "Not found");
+  const p = await get(`U#${author}`, `PP#${id}`);
+  if (!p) fail(404, "Not found");
+  return { data: p.data };
+}
+
+// Newest posts from me and my friends; `before` pages back in time.
+async function feed(uid, before) {
+  const me = await profile(uid);
+  if (!me) return { posts: [], next: null };
+  const edges = await query(`U#${uid}`, "F#");
+  const blocked = new Set((await query(`U#${uid}`, "B#")).map((b) => b.sk.slice(2)));
+  const authors = [uid, ...edges.filter((e) => e.state === "friend").map((e) => e.sk.slice(2))];
+  const upper = before && /^\d{13}$/.test(before) ? postKey(before) : "POST#~";
+  const lists = await Promise.all(authors.map((a) =>
+    db.send(new QueryCommand({
+      TableName: TABLE,
+      KeyConditionExpression: "pk = :p AND sk BETWEEN :lo AND :hi",
+      ExpressionAttributeValues: { ":p": `U#${a}`, ":lo": "POST#", ":hi": upper },
+      ScanIndexForward: false,
+      Limit: POSTS_PER_USER,
+    })).then((r) => r.Items.filter((it) => it.sk !== upper)),
+  ));
+  const posts = lists.flat().sort((a, b) => b.createdAt - a.createdAt).slice(0, FEED_SIZE);
+  const people = new Set(posts.map((p) => p.pk.slice(2)));
+  for (const p of posts) for (const c of p.comments || []) people.add(c.uid);
+  const cards = await profiles([...people]);
+  const who = (u) => {
+    const p = cards.get(u);
+    return p ? { uid: u, handle: p.handle, name: p.name || p.handle, emoji: p.emoji, color: p.color, photoVer: p.photoVer || 0 } : null;
+  };
+  const out = posts.map((p) => {
+    const author = p.pk.slice(2);
+    const counts = {};
+    for (const [u, e] of Object.entries(p.reactions || {})) if (!blocked.has(u)) counts[e] = (counts[e] || 0) + 1;
+    return {
+      id: p.id,
+      author: who(author),
+      kind: p.kind,
+      text: p.text,
+      item: p.item,
+      photo: !!p.photo,
+      at: p.createdAt,
+      reactions: counts,
+      mine: p.reactions?.[uid] || null,
+      comments: (p.comments || [])
+        .filter((c) => !blocked.has(c.uid) && cards.has(c.uid))
+        .map((c) => ({ id: c.id, text: c.text, at: c.at, by: who(c.uid), canDelete: c.uid === uid || author === uid })),
+      canDelete: author === uid,
+    };
+  });
+  return { posts: out, next: posts.length === FEED_SIZE ? posts.at(-1).id : null };
+}
+
+const ACTIONS = { post: createPost, deletePost, react, comment, deleteComment, reportPost, setProfile, photo: setPhoto, removePhoto, activity, pushToken, request, respond, remove, block, report, nudge, deleteAll };
 
 export async function handler(event) {
   if (event.source === "aws.events" || event["detail-type"] === "Scheduled Event") return streakReminders();
@@ -386,7 +562,10 @@ export async function handler(event) {
   try {
     const method = event.requestContext.http.method;
     const path = event.rawPath || "";
-    if (method === "GET" && path.endsWith("/social/photo")) return json(200, await getPhoto(uid, String(event.queryStringParameters?.uid || "")));
+    const q = event.queryStringParameters || {};
+    if (method === "GET" && path.endsWith("/social/photo"))
+      return json(200, q.post ? await getPostPhoto(uid, String(q.uid || ""), String(q.post)) : await getPhoto(uid, String(q.uid || "")));
+    if (method === "GET" && path.endsWith("/social/feed")) return json(200, await feed(uid, q.before));
     if (method === "GET") return json(200, await overview(uid));
     const body = JSON.parse(event.body || "{}");
     const fn = ACTIONS[body.action];
