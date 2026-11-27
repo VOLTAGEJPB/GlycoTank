@@ -841,3 +841,4 @@ body.onboarding { overflow: hidden; }
 .health-icon { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #3a1d26; }
 .health-icon svg { width: 22px; height: 22px; fill: #ff5a7a; }
 .health-fill { color: var(--accent); }
+.health-tips { margin: 0 6px 20px; font-size: 13px; }

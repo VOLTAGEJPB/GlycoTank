@@ -36,7 +36,7 @@ export async function fillHealthCard(app) {
   card.hidden = false;
   card.innerHTML = `
     <div class="health-offer"><span class="health-icon">${heartIcon}</span>
-      <div><strong>Connect ${esc(healthName())}</strong><span>Log watch workouts automatically and see steps, sleep and heart rate here.</span></div></div>
+      <div><strong>Connect ${esc(healthName())}</strong><span>Watch workouts, steps, sleep and heart rate.</span></div></div>
     <div class="actions"><button class="btn primary" id="healthConnect">Connect</button><button class="btn ghost" id="healthLater">Not now</button></div>`;
   $("#healthConnect").onclick = () => connect(app);
   $("#healthLater").onclick = () => {
@@ -70,17 +70,16 @@ export async function renderHealthSettings(body, app) {
   body.innerHTML = `
     <section class="card">
       <div class="health-offer"><span class="health-icon">${heartIcon}</span>
-        <div><strong>${esc(name)}</strong><span>${on ? "Connected on this phone" : available ? "Not connected" : `Not available on this device${ios ? "" : ". Install Health Connect from the Play Store."}`}</span></div></div>
-      <p class="hint">GlycoTank reads your workouts, steps, sleep, resting heart rate, heart rate variability and active calories. Watch workouts are added to Training automatically, steps count toward your tank, and sleep and heart rate fill in your check-in. GlycoTank never writes to ${esc(name)}, and health data is never used for ads.</p>
+        <div><strong>${esc(name)}</strong><span>${on ? "Connected" : available ? "Not connected" : ios ? "Not available" : "Install Health Connect first"}</span></div></div>
+      <p class="hint">Workouts, steps, sleep and heart rate. Read-only, never used for ads.</p>
       <div class="actions">
-        ${available && !on ? `<button class="btn primary" id="hsConnect">Connect ${esc(name)}</button>` : ""}
+        ${available && !on ? `<button class="btn primary" id="hsConnect">Connect</button>` : ""}
         ${on ? `<button class="btn primary" id="hsSync">Sync now</button><button class="btn ghost" id="hsOff">Disconnect</button>` : ""}
         ${!available && !ios ? `<button class="btn" id="hsInstall">Open Health Connect</button>` : ""}
       </div>
     </section>
-    <section class="card"><h2>Oura, Garmin, Whoop and other devices</h2><p class="hint">GlycoTank reads whatever your devices share with ${esc(name)}. In the Oura app, open Settings, then ${esc(name)}, and turn sharing on. Other rings and watches have the same switch in their own app.</p></section>
-    ${on || t ? `<section class="card"><h2>Today</h2>${statsHtml(t || {})}<p class="hint">${imported} ${imported === 1 ? "workout" : "workouts"} imported so far.</p></section>` : ""}
-    ${on ? `<section class="card"><h2>Choose what's shared</h2><p class="hint">${ios ? "Open the Health app, tap your profile picture, then Apps, then GlycoTank, to change what GlycoTank can read." : "Change what GlycoTank can read in Health Connect."}</p>${ios ? "" : `<button class="btn" id="hsPerms">Open Health Connect</button>`}</section>` : ""}`;
+    ${on || t ? `<section class="card"><div class="card-head"><h2>Today</h2><span class="sub">${imported} ${imported === 1 ? "workout" : "workouts"} imported</span></div>${statsHtml(t || {})}</section>` : ""}
+    <p class="hint health-tips">Oura, Garmin or Whoop? Turn on ${esc(name)} sharing in their app.${on ? ` ${ios ? "Change access in Health → Profile → Apps." : `<button type="button" class="link-btn" id="hsPerms">Change access</button>`}` : ""}</p>`;
   $("#hsConnect")?.addEventListener("click", async () => {
     await connect(app);
     renderHealthSettings(body, app);
