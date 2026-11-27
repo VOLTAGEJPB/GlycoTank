@@ -1019,3 +1019,9 @@ button.hb-col { cursor: pointer; }
 .wline-stroke { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
 .wline circle { fill: var(--card); stroke: var(--accent); stroke-width: 2; }
 .btn.wide { width: 100%; margin-top: 14px; }
+/* Tank tabs fill the width: Tank | Nutrition | Steps | Weight */
+#tankTabs .htabs { display: flex; width: 100%; }
+#tankTabs .htabs button { flex: 1; padding: 9px 6px; }
+.hdetail h2 { margin-bottom: 12px; }
+.range-pick { background: var(--card); border: 1px solid var(--line); }
+.range-pick button[aria-checked="true"] { background: var(--tint); color: var(--accent); box-shadow: none; }
