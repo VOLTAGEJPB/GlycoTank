@@ -5,8 +5,15 @@ import { openImage } from "../photo.js";
 
 export async function cropCircle(blob) {
   // The same decoded image is shown and cropped, so the crop matches the preview.
-  const bmp = await openImage(blob);
-  const url = bmp.url;
+  // Copy it into a moderate-size canvas first: iOS mis-crops full-size camera
+  // photos when drawing part of them, so we only ever draw whole images.
+  const img0 = await openImage(blob);
+  const k0 = Math.min(1, 1600 / Math.max(img0.width, img0.height));
+  const bmp = Object.assign(document.createElement("canvas"), { width: Math.round(img0.width * k0), height: Math.round(img0.height * k0) });
+  bmp.getContext("2d").drawImage(img0, 0, 0, bmp.width, bmp.height);
+  img0.close();
+  const url = URL.createObjectURL(await new Promise((r) => bmp.toBlob(r, "image/jpeg", 0.9)));
+  bmp.close = () => URL.revokeObjectURL(url);
   return new Promise((resolve) => {
     const dlg = document.createElement("dialog");
     dlg.className = "crop-dlg";
@@ -98,9 +105,13 @@ export async function cropCircle(blob) {
       const a = e.target.closest("[data-a]")?.dataset.a;
       if (a === "cancel") done(null);
       if (a === "ok") {
-        const scale = base * z;
+        // Draw the whole image exactly as positioned in the stage, scaled to 256 px.
+        const k = 256 / S;
         const canvas = Object.assign(document.createElement("canvas"), { width: 256, height: 256 });
-        canvas.getContext("2d").drawImage(bmp, -x / scale, -y / scale, S / scale, S / scale, 0, 0, 256, 256);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.drawImage(bmp, x * k, y * k, bmp.width * base * z * k, bmp.height * base * z * k);
         done(canvas.toDataURL("image/jpeg", 0.85).split(",")[1]);
       }
     });
