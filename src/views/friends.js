@@ -22,7 +22,7 @@ export const showFriendsPane = (p) => (pane = p);
 
 const fmt = (n) => Math.round(n).toLocaleString();
 const avatar = (p, size = 48) =>
-  `<span class="avatar-s" data-uid="${esc(p.uid || "")}" data-ver="${p.photoVer || 0}" style="--size:${size}px;background:${esc(p.color || COLORS[0])}">${esc(p.emoji || EMOJIS[0])}</span>`;
+  `<span class="avatar-s" data-uid="${esc(p.uid || "")}" data-ver="${p.photoVer || 0}" style="--size:${size}px;background-color:${esc(p.color || COLORS[0])}">${esc(p.emoji || EMOJIS[0])}</span>`;
 
 // Swaps emoji avatars for photos once they've loaded.
 function fillPhotos(root) {

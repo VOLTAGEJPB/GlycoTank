@@ -1030,7 +1030,7 @@ button.hb-col { cursor: pointer; }
 .top-friends { position: relative; margin: -8px -6px -8px 0; color: var(--text); }
 .top-friends[aria-current="page"] { color: var(--accent); }
 .top-friends .badge { position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--danger); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; }
-.avatar-s { flex: none; width: var(--size); height: var(--size); border-radius: 50%; display: grid; place-items: center; font-size: calc(var(--size) * 0.5); line-height: 1; background-size: cover; background-position: center; }
+.avatar-s { flex: none; width: var(--size); height: var(--size); border-radius: 50%; display: grid; place-items: center; font-size: calc(var(--size) * 0.5); line-height: 1; background-size: cover !important; background-position: center !important; background-repeat: no-repeat; }
 .fr-me-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
 .fr-me-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .fr-me-text strong { font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -20,7 +20,7 @@ function ago(t) {
   return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 const avatar = (p, size = 40) =>
-  `<span class="avatar-s" data-uid="${esc(p?.uid || "")}" data-ver="${p?.photoVer || 0}" style="--size:${size}px;background:${esc(p?.color || "#57cc99")}">${esc(p?.emoji || "💪")}</span>`;
+  `<span class="avatar-s" data-uid="${esc(p?.uid || "")}" data-ver="${p?.photoVer || 0}" style="--size:${size}px;background-color:${esc(p?.color || "#57cc99")}">${esc(p?.emoji || "💪")}</span>`;
 
 async function fillPhotos(root) {
   $$(".avatar-s[data-ver]", root).forEach(async (el) => {
