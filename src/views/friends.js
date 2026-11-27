@@ -62,6 +62,7 @@ export async function renderFriends(root, app) {
 
 // Feed | Friends switch, or the profile editor when there's no profile yet.
 function shell(root, app) {
+  if (!app.state.settings.communityAgreed) return drawGuidelines(root, app);
   const d = socialData();
   if (!d?.me || editing) return drawEditor(root, app, d?.me);
   const n = d.incoming.length;
@@ -79,6 +80,28 @@ function shell(root, app) {
   const host = $("#frPane", root);
   if (pane === "feed") renderFeed(host, app);
   else draw(host, app);
+}
+
+// One-time agreement before anyone can see or post social content (App Store rule 1.2).
+function drawGuidelines(root, app) {
+  root.innerHTML = `<section class="card fr-rules">
+      <h2>Community guidelines</h2>
+      <p>Friends and Feed are for cheering each other on. To use them, you agree to these rules:</p>
+      <ul>
+        <li>No hate, harassment, bullying or threats.</li>
+        <li>No nudity, sexual content or graphic violence.</li>
+        <li>No spam, scams or pretending to be someone else.</li>
+        <li>Only post photos you have the right to share.</li>
+      </ul>
+      <p>There is <strong>no tolerance</strong> for objectionable content or abusive users. Text and photos are checked automatically. You can report or block anyone from their profile or a post. We review reports within 24 hours, remove content that breaks these rules and remove the accounts that posted it.</p>
+      <p class="hint">These rules are part of the <a href="https://glycotank.com/terms/#community" target="_blank" rel="noopener">Terms of Use</a>.</p>
+      <button class="btn primary wide" id="frAgree">I agree</button>
+    </section>`;
+  $("#frAgree", root).addEventListener("click", () => {
+    app.state.settings = { ...app.state.settings, communityAgreed: new Date().toISOString() };
+    app.save();
+    shell(root, app);
+  });
 }
 
 function draw(root, app) {

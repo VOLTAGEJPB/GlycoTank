@@ -58,7 +58,7 @@ function page(rel, title, description, body) {
 ${body}
 </div></main>
 <footer><div class="wrap">
-<p><a href="/">Home</a><a href="/support/">Support</a><a href="/privacy/">Privacy policy</a></p>
+<p><a href="/">Home</a><a href="/support/">Support</a><a href="/privacy/">Privacy policy</a><a href="/terms/">Terms of use</a></p>
 <p>&copy; 2026 Joel Perez. GlycoTank provides general fitness estimates and is not medical advice.</p>
 </div></footer>
 </body>
@@ -150,6 +150,30 @@ page(
 
 <h2>Contact</h2>
 <p>Questions about privacy? Email <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
+);
+
+page(
+  "terms/index.html",
+  "Terms of Use | GlycoTank",
+  "Terms of use and community guidelines for the GlycoTank app.",
+  `<h1>Terms of Use</h1>
+<p class="meta">Last updated: ${UPDATED}</p>
+<p>These terms apply to the GlycoTank app and add to Apple's <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/">standard end user license agreement</a> (or the Google Play terms on Android). By using GlycoTank you agree to them.</p>
+<h2>Health information</h2>
+<p>GlycoTank gives general fitness and nutrition estimates. It is not medical advice. Talk to a doctor before changing your diet or training, especially if you have a medical condition.</p>
+<h2 id="community">Community guidelines</h2>
+<p>Friends and Feed let you share streaks, posts, photos, reactions and comments with your friends. Before using them you must agree to these rules. There is no tolerance for objectionable content or abusive users. You must not post or send:</p>
+<ul>
+<li>hate speech, harassment, bullying, threats or content that encourages self-harm;</li>
+<li>nudity, sexual content or graphic violence;</li>
+<li>spam, scams, or content that pretends to be someone else;</li>
+<li>anything illegal, or photos you don't have the right to share.</li>
+</ul>
+<p>Names, usernames, text and photos are checked automatically, and content that breaks these rules can be blocked before it is shown. You can report a user, post or comment, and block any user, from inside the app. We review reports within 24 hours. We remove content that breaks these rules and remove the accounts of users who post it.</p>
+<h2>Your account</h2>
+<p>You're responsible for activity on your account. You can delete your account and all its data at any time in the app. We may suspend or delete accounts that break these terms.</p>
+<h2>Contact</h2>
+<p>Questions or a report to make? Email <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`,
 );
 
 page(

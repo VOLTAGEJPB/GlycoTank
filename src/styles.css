@@ -1182,3 +1182,8 @@ button.hb-col { cursor: pointer; }
 .wk-day + .wk-day { margin-top: 14px; }
 .wk-day-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
 .wk-day-head span { color: var(--muted); font-size: 13px; }
+
+/* ---------- Friends: community guidelines ---------- */
+.fr-rules ul { margin: 4px 0 12px; padding-left: 20px; line-height: 1.5; }
+.fr-rules p { line-height: 1.5; }
+.fr-rules .btn { margin-top: 6px; }
