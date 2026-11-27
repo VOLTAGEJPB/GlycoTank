@@ -106,8 +106,10 @@ async function accessToken() {
   const refresh_token = await SecureStorage.getItem(TOKEN_KEY);
   if (!refresh_token) throw new ScanError("Link Gmail first.");
   const res = await post(TOKEN_URL, { client_id: GMAIL_CLIENT_ID, grant_type: "refresh_token", refresh_token });
-  if (res.status === 400 || res.status === 401) {
-    await forget(); // access was removed or has expired
+  // Only unlink when Google says the grant itself is gone (revoked, password
+  // changed, or unused for 6 months). Any other error keeps the link.
+  if ((res.status === 400 || res.status === 401) && res.data?.error === "invalid_grant") {
+    await forget();
     throw new ScanError("Your Gmail link expired. Go to More, then Email receipts, to link it again.");
   }
   if (res.status !== 200) throw new ScanError("Couldn't reach Gmail. Please try again.");

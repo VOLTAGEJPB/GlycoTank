@@ -4,6 +4,7 @@ import { normalize, emptyState } from "../store.js";
 import { $, $$, esc, num, field, select, toast, success, confirmDialog } from "../ui.js";
 import { shareFile, toCsv, applyReminders, remindersSupported } from "../native.js";
 import * as auth from "../auth.js";
+import { Capacitor } from "@capacitor/core";
 import { status as syncStatus, syncNow, onStatus, deleteCloudAccount } from "../sync.js";
 
 function syncText() {
@@ -109,11 +110,12 @@ export function renderSettings(root, app, show = group) {
     <section class="card" data-group="reminders">
       <h2>Reminders</h2>
       ${remindersSupported ? `
-        <p class="hint">Daily notifications at the times you choose. Leave a time blank to turn it off. On Android, allow notifications and then turn on <em>Alarms &amp; reminders</em> for GlycoTank so they arrive on time.</p>
-        <div class="row2">
-          ${field("rCheckin", "Morning check-in", 'type="time"', s.reminders.checkin)}
-          ${field("rLog", "Log meals & training", 'type="time"', s.reminders.log)}
+        <p class="hint">Daily nudges. Clear a time to turn it off.</p>
+        <div class="remind-list">
+          <label class="remind-row"><span>Morning check-in</span><input id="rCheckin" type="time" value="${esc(s.reminders.checkin || "")}"></label>
+          <label class="remind-row"><span>Log meals &amp; training</span><input id="rLog" type="time" value="${esc(s.reminders.log || "")}"></label>
         </div>
+        ${Capacitor.getPlatform() === "android" ? `<p class="hint small">Android: allow notifications and <em>Alarms &amp; reminders</em> for GlycoTank.</p>` : ""}
         <div class="actions"><button class="btn" id="rSave">Save reminders</button></div>`
       : `<p class="hint">Reminders are available in the iPhone and Android apps.</p>`}
     </section>

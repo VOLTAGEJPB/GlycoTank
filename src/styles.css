@@ -843,3 +843,11 @@ body.onboarding { overflow: hidden; }
 .health-fill { color: var(--accent); }
 .health-tips { margin: 0 6px 20px; font-size: 13px; }
 .ob-hero.ob-heart svg { width: 96px; height: 96px; padding: 22px; border-radius: 28px; background: #3a1d26; fill: #ff5a7a; filter: drop-shadow(0 18px 40px rgba(255, 90, 122, 0.25)); }
+
+/* Reminders: one compact row per reminder */
+.remind-list { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin: 4px 0 12px; }
+.remind-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 14px; min-height: 52px; }
+.remind-row + .remind-row { border-top: 1px solid var(--line); }
+.remind-row span { font-weight: 600; }
+.remind-row input[type="time"] { width: 128px; flex: none; min-height: 38px; padding: 4px 10px; text-align: center; }
+.hint.small { font-size: 13px; margin-top: -4px; }
