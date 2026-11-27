@@ -37,7 +37,7 @@ export const scansLeft = (res) =>
   Number.isInteger(res?.remaining) ? ` · ${res.remaining} photo ${res.remaining === 1 ? "scan" : "scans"} left today` : "";
 
 // Lets the user take (or pick) a photo; resolves to a Blob, or null if they backed out.
-async function pickPhoto(fromGallery) {
+export async function pickPhoto(fromGallery) {
   if (Capacitor.isNativePlatform()) {
     let uri;
     try {

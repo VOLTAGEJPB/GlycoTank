@@ -47,6 +47,17 @@ Parameters:
     Default: ""
     NoEcho: true
 
+  ApnsKeyParam:
+    Type: String
+    Default: /glycotank/apns-key
+    Description: SSM SecureString holding the APNs auth key (.p8 contents) for push notifications.
+  ApnsKeyId:
+    Type: String
+    Default: 5776LZ5GV3
+  ApnsTeamId:
+    Type: String
+    Default: AZHZT69CXD
+
   AnthropicKeyParam:
     Type: String
     Default: /glycotank/anthropic-api-key
@@ -277,8 +288,10 @@ Resources:
           TABLE: !Ref DataTable
           USER_POOL_ID: !Ref UserPool
           ADMIN_SUBS: !Ref AdminSubs
+          SOCIAL_TABLE: !Ref SocialTable
       Policies:
         - DynamoDBReadPolicy: { TableName: !Ref DataTable }
+        - DynamoDBReadPolicy: { TableName: !Ref SocialTable }
         - Statement:
             - Effect: Allow
               Action: cognito-idp:ListUsers
@@ -310,6 +323,56 @@ Resources:
               Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AnthropicKeyParam}
       Events:
         Estimate: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /estimate, Method: POST } }
+
+  # Friends: usernames, profile photos, friend requests, streaks and nudges.
+  SocialTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub glycotank-${Stage}-social
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: pk, AttributeType: S }
+        - { AttributeName: sk, AttributeType: S }
+      KeySchema:
+        - { AttributeName: pk, KeyType: HASH }
+        - { AttributeName: sk, KeyType: RANGE }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  SocialFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: social.handler
+      Timeout: 20
+      Environment:
+        Variables:
+          SOCIAL_TABLE: !Ref SocialTable
+          APNS_KEY_PARAM: !Ref ApnsKeyParam
+          APNS_KEY_ID: !Ref ApnsKeyId
+          APNS_TEAM: !Ref ApnsTeamId
+          APNS_TOPIC: com.joel.glycotank
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref SocialTable }
+        - Statement:
+            - Effect: Allow
+              Action: rekognition:DetectModerationLabels
+              Resource: "*"
+            - Effect: Allow
+              Action: ssm:GetParameter
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ApnsKeyParam}
+      Events:
+        GetSocial: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /social, Method: GET } }
+        GetPhoto: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /social/photo, Method: GET } }
+        PostSocial: { Type: HttpApi, Properties: { ApiId: !Ref Api, Path: /social, Method: POST } }
+        StreakReminders: { Type: Schedule, Properties: { Schedule: rate(1 hour) } }
 
 Outputs:
   ApiUrl:

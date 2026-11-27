@@ -85,6 +85,11 @@ function draw(body, s) {
         <li><strong>${esc(a.email)}</strong>
           <small>${esc(a.via.join(" + "))} · joined ${esc(ago(a.joined))} · ${a.lastActive ? `active ${esc(ago(a.lastActive))}` : "never synced"} · ${a.meals} ${a.meals === 1 ? "meal" : "meals"}${a.confirmed ? "" : " · not confirmed"}</small></li>`).join("")}</ul>` : `<p class="hint">No accounts yet.</p>`}
     </section>
+    ${s.social ? `<section class="card">
+      <div class="stat-chart-head"><h2>Friends</h2><span class="hint">${s.social.profiles} ${s.social.profiles === 1 ? "profile" : "profiles"}</span></div>
+      ${s.social.reports.length ? `<p class="hint">Reports to review (Apple expects action within 24 hours). Ask Claude to remove a photo or ban an account.</p><ul class="stat-accounts">${s.social.reports.map((r) => `
+        <li><strong>@${esc(r.handle || "?")}</strong><small>${esc(r.reason || "No reason")} · ${esc(ago(r.at))}</small></li>`).join("")}</ul>` : `<p class="hint">No reports.</p>`}
+    </section>` : ""}
     <p class="hint stat-foot">Updated ${new Date(s.generatedAt).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })} · Users with the same email count once. Active means the app synced that day. Only your account can see this. <button type="button" class="link-btn" id="statsRefresh">Refresh</button></p>`;
 }
 

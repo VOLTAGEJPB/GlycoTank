@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
 const CONTACT = "support@glycotank.com";
-const UPDATED = "November 18, 2026";
+const UPDATED = "November 27, 2026";
 
 const css = `
 :root{--bg:#0f1115;--card:#161a23;--text:#e8ebf1;--muted:#98a2b3;--line:#262c3d;--accent:#57cc99}
@@ -112,7 +112,7 @@ page(
 <p>Where the law requires it (for example in the European Economic Area, the UK and some US states), the app asks for your consent before personalized ads are shown, and you can change your choice later. You can also reset or delete your advertising ID, or opt out of personalized ads, in your phone's settings (on Android: <em>Settings → Privacy → Ads</em>; on iPhone: <em>Settings → Privacy &amp; Security → Apple Advertising</em>). On iPhone, GlycoTank does not ask to track you across other companies' apps and websites, so the advertising ID is not available to the app and ads are not personalized based on your activity elsewhere.</p>
 
 <h2>What we don't collect</h2>
-<p>Apart from the ads described above, GlycoTank has no analytics, no crash reporting and no third-party tracking tools. We don't collect your location (other than the approximate location Google infers for ads) or contacts, and we don't keep your photos (see meal photo estimates below).</p>
+<p>Apart from the ads described above, GlycoTank has no analytics, no crash reporting and no third-party tracking tools. We don't collect your location (other than the approximate location Google infers for ads) or contacts, and we don't keep your meal photos (see meal photo estimates below). The only photo we keep is a profile picture, if you choose to add one (see Friends).</p>
 
 <h2>Scanning food</h2>
 <p><strong>Food search</strong> uses a food list built into the app (from USDA FoodData Central). Searches stay on your device.</p>
@@ -126,8 +126,13 @@ page(
 <h2>Exports and backups</h2>
 <p>You can export your data as a backup file or spreadsheet from Settings. The app hands the file to your phone's share sheet, and you choose where it goes (for example Files, email or a cloud drive). Once you share a file, it's handled by the app or service you chose under that service's privacy policy.</p>
 
-<h2>Reminders</h2>
-<p>If you turn on reminders, GlycoTank schedules notifications locally on your device. Nothing is sent to a server to deliver them. You can turn them off in the app or in your phone's settings at any time.</p>
+<h2 id="friends">Friends</h2>
+<p>Friends is optional. If you set up a profile, we store your name, username, chosen emoji and color, and a profile photo if you add one. Profile photos are checked automatically by an image moderation service (Amazon Rekognition) before anyone else can see them, and photos that appear to contain inappropriate content are rejected. People can find you only by your exact username, and only people you accept as friends can see your profile.</p>
+<p>To show streaks, the app sends us the dates you logged something (a meal, workout or check-in) over the last 120 days and your time zone. Your friends see your streak, whether you've logged today, and the shared streak you have with them. If you turn on <em>Share my daily summary</em>, they also see today's calories, protein, carbs and number of workouts. Your meals, weight and other details are never shared with friends.</p>
+<p>You can remove, block or report anyone. Reports are reviewed within 24 hours and accounts or content that break the rules are removed. Deleting your account deletes your profile, photo, username and friendships.</p>
+
+<h2>Notifications</h2>
+<p>If you turn on reminders, GlycoTank schedules them locally on your device. If you use Friends and allow notifications, we store your phone's push notification token so we can tell you about friend requests, nudges from friends, and when your streak is about to end. Push notifications are delivered through Apple's push service. You can turn notifications off in your phone's settings at any time.</p>
 
 <h2>Deleting your account and data</h2>
 <p>You can delete your account at any time in the app with <em>Settings → Account → Delete account</em>. This permanently deletes your account and all the data stored with it from our servers, and removes it from your device. Copies in our automatic backups are deleted within 35 days. You can also email us to ask for your account to be deleted.</p>
@@ -168,10 +173,30 @@ page(
 <h2>Reminders aren't showing up</h2>
 <p>Make sure reminder times are set in <em>Settings → Reminders</em> and that notifications are allowed for GlycoTank in your phone's settings. Some Android phones also stop notifications for apps with battery optimization turned on.</p>
 
+<h2>How do Friends and streaks work?</h2>
+<p>Open Friends from the people icon at the top of the app, pick a username, and add friends by their username or send them an invite link. Your streak counts the days in a row you log a meal, workout or check-in. With each friend you also get a shared 🤝 streak that grows every day you both log. Tap 👋 Nudge to remind a friend who hasn't logged yet. To remove, block or report someone, tap their name.</p>
+
 <h2>How do I delete my account?</h2>
 <p>Use <em>Settings → Account → Delete account</em>. This permanently deletes your account and all your data. See our <a href="/privacy/">privacy policy</a> for details.</p>
 
 <div class="note">GlycoTank gives general fitness and nutrition estimates, not medical advice. Talk to a doctor or dietitian before making big changes to your diet or training, especially if you have diabetes or another health condition.</div>`,
+);
+
+page(
+  "add/index.html",
+  "Add me on GlycoTank",
+  "A friend invited you to GlycoTank. Keep each other's streaks going.",
+  `<h1>You're invited</h1>
+<p class="lede" id="who">A friend invited you to GlycoTank so you can keep each other on track.</p>
+<p><a class="cta" id="open" href="glycotank://add/"><strong>Open in GlycoTank</strong></a></p>
+<p>Don't have the app yet? <a href="https://apps.apple.com/app/id6833557734"><strong>Download it on the App Store</strong></a> (free), then add your friend in Friends by their username.</p>
+<script>
+const u = (new URLSearchParams(location.search).get("u") || "").replace(/[^A-Za-z0-9_.]/g, "").slice(0, 20);
+if (u) {
+  document.getElementById("who").textContent = "@" + u + " invited you to GlycoTank so you can keep each other on track.";
+  document.getElementById("open").href = "glycotank://add/" + u;
+}
+</script>`,
 );
 
 fs.writeFileSync(path.join(out, "robots.txt"), "User-agent: *\nAllow: /\n");

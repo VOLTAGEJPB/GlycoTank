@@ -5,7 +5,7 @@
 // account's email, sign-in methods, join date and last activity (no meal contents).
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider";
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -128,14 +128,29 @@ export function summarize(users, rows, tz, now = Date.now()) {
   };
 }
 
+// Friends: how many profiles, and the latest reports to review.
+async function socialSummary() {
+  const T = process.env.SOCIAL_TABLE;
+  if (!T) return null;
+  let profiles = 0, ExclusiveStartKey;
+  do {
+    const r = await db.send(new ScanCommand({ TableName: T, FilterExpression: "sk = :p", ExpressionAttributeValues: { ":p": "P" }, Select: "COUNT", ExclusiveStartKey }));
+    profiles += r.Count;
+    ExclusiveStartKey = r.LastEvaluatedKey;
+  } while (ExclusiveStartKey);
+  const reports = (await db.send(new QueryCommand({ TableName: T, KeyConditionExpression: "pk = :r", ExpressionAttributeValues: { ":r": "REPORT" }, ScanIndexForward: false, Limit: 30 }))).Items
+    .map((r) => ({ at: +r.sk.split("#")[0], handle: r.handle, reason: r.reason, target: r.target }));
+  return { profiles, reports };
+}
+
 export async function handler(event) {
   const sub = event.requestContext?.authorizer?.jwt?.claims?.sub;
   if (!sub || !ADMINS.has(sub)) return json(404, { error: "not found" });
   const tzRaw = Number(event.queryStringParameters?.tz);
   const tz = Number.isInteger(tzRaw) && Math.abs(tzRaw) <= 14 * 60 ? tzRaw : 0;
   try {
-    const [users, rows] = await Promise.all([listUsers(), scanRows()]);
-    return json(200, summarize(users, rows, tz));
+    const [users, rows, social] = await Promise.all([listUsers(), scanRows(), socialSummary().catch(() => null)]);
+    return json(200, { ...summarize(users, rows, tz), social });
   } catch (e) {
     console.error(e);
     return json(500, { error: "Couldn't load stats." });

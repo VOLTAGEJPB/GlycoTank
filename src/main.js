@@ -14,6 +14,8 @@ import { renderTank } from "./views/tank.js";
 import { renderLog, openLog } from "./views/log.js";
 import { renderCheckin } from "./views/checkin.js";
 import { renderMore } from "./views/more.js";
+import { renderFriends, prefillFriend } from "./views/friends.js";
+import { loadSocial, reportActivity, resumePush, onSocial } from "./social.js";
 import { openOnboarding } from "./views/onboarding.js";
 import { startAds, pauseAds, resumeAds } from "./ads.js";
 import { initTheme, applyTheme } from "./theme.js";
@@ -29,6 +31,7 @@ const VIEWS = {
   log: { title: "Log", render: renderLog },
   checkin: { title: "Check-in", render: renderCheckin },
   more: { title: "More", render: renderMore },
+  friends: { title: "Friends", render: renderFriends },
 };
 
 const app = {
@@ -63,6 +66,7 @@ const app = {
     $("#title").textContent = VIEWS[view].title;
     // Pages inside More get a back button in the sticky top bar, so it stays in reach while scrolling.
     $("#topBack").hidden = !(view === "more" && app.moreSection);
+    $("#topFriends").setAttribute("aria-current", view === "friends" ? "page" : "false");
     const root = $("#view");
     VIEWS[view].render(root, app);
     if (!app.launching) enterView(root);
@@ -208,8 +212,29 @@ window.addEventListener("themechange", () => app.state && app.refresh());
   if (!params.has("demo")) {
     await auth.restore();
     initSync(app);
-    onSaved(scheduleSync);
+    onSaved(() => {
+      scheduleSync();
+      reportActivity(app);
+    });
     await requireAccount();
+    // Friends: request badge, push registration, and keeping streaks current.
+    $("#topFriends").hidden = false;
+    onSocial((d) => {
+      const n = d?.incoming?.length || 0;
+      $("#friendsBadge").hidden = !n;
+      $("#friendsBadge").textContent = n;
+    });
+    const pullSocial = () => loadSocial(true).then((d) => d?.me && reportActivity(app)).catch(() => {});
+    pullSocial();
+    resumePush(app).catch(() => {});
+    document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && pullSocial());
+    // Invite links: glycotank://add/<username>
+    NativeApp.addListener("appUrlOpen", ({ url }) => {
+      const m = /^glycotank:\/\/add\/([A-Za-z0-9_.]{3,20})/.exec(url || "");
+      if (!m) return;
+      prefillFriend(m[1]);
+      app.go("friends");
+    });
   }
   if (!app.state.meta.introSeen || params.has("intro")) showIntro({ startAt: +(params.get("intro") || 0) });
   else if (!params.has("demo")) startAds();

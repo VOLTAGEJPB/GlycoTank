@@ -74,5 +74,7 @@ export function syncNow() {
 }
 
 export async function deleteCloudAccount() {
+  // Friends data (profile, photo, username, friendships) goes first.
+  await fetch(CLOUD.apiUrl + "/social", { method: "POST", headers: { Authorization: `Bearer ${await idToken()}`, "Content-Type": "application/json" }, body: JSON.stringify({ action: "deleteAll" }) }).catch(() => {});
   await api("DELETE", "/account");
 }

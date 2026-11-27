@@ -7,5 +7,8 @@
 	<true/>
 	<key>com.apple.developer.healthkit.access</key>
 	<array/>
+	<!-- Push notifications: friend requests, nudges and streak reminders. -->
+	<key>aps-environment</key>
+	<string>development</string>
 </dict>
 </plist>
