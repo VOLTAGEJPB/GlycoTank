@@ -6,6 +6,7 @@
 // heart summary goes in state.meta.healthDays for the Tank card and Check-in.
 // Health data is never used for ads (Apple 5.1.3 / Health Connect policy).
 import { Capacitor } from "@capacitor/core";
+import { Health } from "@capgo/capacitor-health";
 import { localDate, addDays } from "./model.js";
 const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); // same format as store.js
 
@@ -16,16 +17,15 @@ const KEEP_DAYS = 14;
 const MIN_GAP_MS = 5 * 60_000;
 export const healthName = () => (Capacitor.getPlatform() === "android" ? "Health Connect" : "Apple Health");
 
-let plugin;
-async function H() {
-  plugin ??= (await import("@capgo/capacitor-health")).Health;
-  return plugin;
-}
+// Imported statically and never returned from an async function: Capacitor
+// plugin proxies answer every property, including "then", so awaiting one never settles.
+const plug = () => Health;
 
 export async function healthAvailable() {
   if (!native) return false;
   try {
-    return (await (await H()).isAvailable()).available;
+    const res = await Promise.race([plug().isAvailable(), new Promise((r) => setTimeout(() => r({ available: false, timedOut: true }), 4000))]);
+    return !!res.available;
   } catch {
     return false;
   }
@@ -47,7 +47,7 @@ const setConnected = (on) => {
 // Shows the system permission sheet. iOS never says which types were allowed,
 // so "connected" means the user went through the sheet; missing data just reads as empty.
 export async function connectHealth(app) {
-  const h = await H();
+  const h = plug();
   const res = await h.requestAuthorization({ read: READ, requestHistoryAccess: false });
   if (Capacitor.getPlatform() === "android" && !res.readAuthorized?.length) return false;
   setConnected(true);
@@ -59,7 +59,7 @@ export function disconnectHealth() {
   setConnected(false);
 }
 
-export const openHealthSettings = async () => (await H()).openHealthConnectSettings().catch(() => {});
+export const openHealthSettings = () => plug().openHealthConnectSettings().catch(() => {});
 
 // ---------- mapping ----------
 
@@ -163,7 +163,7 @@ export function syncHealth(app, { force = false, firstRun = false } = {}) {
   if (!force && Date.now() - lastRun < MIN_GAP_MS) return Promise.resolve(false);
   lastRun = Date.now();
   running = (async () => {
-    const h = await H();
+    const h = plug();
     const state = app.state;
     const meta = state.meta;
     let changed = false;

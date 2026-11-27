@@ -62,6 +62,7 @@ async function connect(app) {
 export async function renderHealthSettings(body, app) {
   const name = healthName();
   const ios = Capacitor.getPlatform() === "ios";
+  body.innerHTML = `<p class="hint">Checking ${esc(name)}…</p>`;
   const available = await healthAvailable();
   const on = healthConnected();
   const t = healthToday(app.state);
