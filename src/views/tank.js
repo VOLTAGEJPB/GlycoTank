@@ -6,6 +6,7 @@ import { $, esc, round, num, select } from "../ui.js";
 import { animate, countUp } from "../motion.js";
 import { workoutLine } from "./entries.js";
 import { fillHealthCard } from "./health-ui.js";
+import { renderHistory } from "./tank-history.js";
 
 let chartDays = 14;
 
@@ -71,6 +72,9 @@ export function renderTank(root, app) {
       ${workouts.length ? `<ul class="entries">${workouts.map((w) => workoutLine(w, s)).join("")}</ul>` : `<p class="hint">No training logged yet.</p>`}
     </section>
 
+    <h2 class="section-title">History</h2>
+    <div id="tankHistory"></div>
+
   `;
 
   const updatePlan = () => {
@@ -82,6 +86,7 @@ export function renderTank(root, app) {
   ["planSets", "planMins", "planInt"].forEach((id) => $("#" + id).addEventListener("input", updatePlan));
   updatePlan();
   fillHealthCard(app);
+  renderHistory($("#tankHistory"), app);
 
   $("#chartDays").addEventListener("change", (e) => {
     chartDays = +e.target.value;

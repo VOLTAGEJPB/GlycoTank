@@ -16,6 +16,9 @@ import { renderCheckin } from "./views/checkin.js";
 import { renderMore } from "./views/more.js";
 import { openOnboarding } from "./views/onboarding.js";
 import { startAds, pauseAds, resumeAds } from "./ads.js";
+import { initTheme, applyTheme } from "./theme.js";
+
+initTheme();
 
 // Accounts are required once the cloud backend is configured (see cloud-config.js).
 const ACCOUNT_REQUIRED = true;
@@ -51,6 +54,7 @@ const app = {
     // More keeps its open page on re-renders (section undefined); null or "" goes back to the list.
     if (view === "more" && section !== undefined) app.moreSection = section || null;
     app.current = view;
+    applyTheme(app.state.settings.theme); // also picks up a change synced from another device
     const tabs = $$("#tabs button");
     tabs.forEach((b) => b.setAttribute("aria-current", b.dataset.view === view ? "page" : "false"));
     const tab = tabs.findIndex((b) => b.dataset.view === view);
@@ -182,10 +186,13 @@ async function requireAccount() {
   app.go(app.current);
 }
 
+window.addEventListener("themechange", () => app.state && app.refresh());
+
 // ---------- Start ----------
 (async () => {
   app.state = location.search.includes("demo") ? (await import("./demo.js")).demoState() : await loadState();
   if (location.search.includes("demo")) app.save = () => {}; // never overwrite real data with the sample
+  if (new URLSearchParams(location.search).get("theme")) app.state.settings.theme = new URLSearchParams(location.search).get("theme");
   const params = new URLSearchParams(location.search);
   const skipLaunch = params.has("demo") && !params.has("launch");
   if (skipLaunch) $("#launch").remove();

@@ -5,6 +5,7 @@ import { $, $$, esc, num, field, select, toast, success, confirmDialog } from ".
 import { shareFile, toCsv, applyReminders, remindersSupported } from "../native.js";
 import * as auth from "../auth.js";
 import { Capacitor } from "@capacitor/core";
+import { THEMES, applyTheme } from "../theme.js";
 import { status as syncStatus, syncNow, onStatus, deleteCloudAccount } from "../sync.js";
 
 function syncText() {
@@ -107,6 +108,14 @@ export function renderSettings(root, app, show = group) {
       ${select("sUnits", "Weights", [["lb", "Pounds (lb)"], ["kg", "Kilograms (kg)"]], s.units)}
     </section>
 
+    <section class="card" data-group="appearance">
+      <h2>Appearance</h2>
+      <div class="theme-pick" role="radiogroup" aria-label="Appearance">
+        ${THEMES.map(([v, label]) => `<button type="button" role="radio" class="theme-opt ${v}" data-theme-opt="${v}" aria-checked="${(s.theme || "dark") === v}">
+          <span class="theme-swatch" aria-hidden="true"><i></i><i></i><i></i></span>${label}</button>`).join("")}
+      </div>
+    </section>
+
     <section class="card" data-group="reminders">
       <h2>Reminders</h2>
       ${remindersSupported ? `
@@ -207,6 +216,15 @@ export function renderSettings(root, app, show = group) {
     app.save();
     renderSettings(root, app);
   });
+
+  $$("[data-theme-opt]", root).forEach((b) =>
+    b.addEventListener("click", () => {
+      s.theme = b.dataset.themeOpt;
+      app.save();
+      applyTheme(s.theme);
+      $$("[data-theme-opt]", root).forEach((x) => x.setAttribute("aria-checked", x === b));
+    }),
+  );
 
   $("#rSave")?.addEventListener("click", async () => {
     s.reminders = { checkin: $("#rCheckin").value, log: $("#rLog").value };

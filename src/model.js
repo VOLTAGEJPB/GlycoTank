@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS = {
   otherCost: 10, // grams for a sport/other session
   dailyUse: 150, // grams/day used by the brain and everyday activity when the tank is full (scales with how full it is)
   units: "lb", // display units for body weight and lifts
+  theme: "dark", // "dark", "light" or "system"
   reminders: { log: "", checkin: "" }, // "HH:MM" or ""
 };
 

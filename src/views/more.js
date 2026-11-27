@@ -41,6 +41,7 @@ const GROUPS = [
     ["history", "History", "Past days of meals and training"],
   ]],
   ["App", [
+    ["appearance", "Appearance", "Light, dark or match your phone"],
     ["reminders", "Reminders", "Daily check-in and logging reminders"],
     ["data", "Your data", "Back up, export or restore"],
     ["about", "About & help", "Version, intro and data sources"],
