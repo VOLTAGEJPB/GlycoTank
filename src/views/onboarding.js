@@ -6,10 +6,15 @@ import { paceOptions, snapPace, paceLabel, paceSub, rateText, projectionText, fl
 import { $, $$, esc, num, success, toast } from "../ui.js";
 import { remindersSupported, applyReminders } from "../native.js";
 import { haptic, countUp, reducedMotion } from "../motion.js";
+import { Capacitor } from "@capacitor/core";
+import { healthName, connectHealth } from "../health.js";
 
-const STEPS = ["welcome", "how", "about", "activity", "goal", "plan", "reminders", "done"].filter(
-  (s) => s !== "reminders" || remindersSupported,
+// The Apple Health / Health Connect step is phones only (?obhealth previews it on the web).
+const healthStep = Capacitor.isNativePlatform() || /[?&]obhealth/.test(location.search);
+const STEPS = ["welcome", "how", "about", "activity", "goal", "plan", "reminders", "health", "done"].filter(
+  (s) => (s !== "reminders" || remindersSupported) && (s !== "health" || healthStep),
 );
+const HEART = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2 0 3.6 1.1 4.4 2.6l.9 1.5.9-1.5c.8-1.5 2.4-2.6 4.4-2.6 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>`;
 
 const TANK_ICON = `<svg viewBox="0 0 120 160" aria-hidden="true"><defs><clipPath id="obClip"><rect x="14" y="18" width="92" height="132" rx="24"/></clipPath></defs>
   <rect x="44" y="5" width="32" height="13" rx="5" fill="#3a4357"/><rect x="14" y="18" width="92" height="132" rx="24" fill="#20283a"/>
@@ -138,18 +143,27 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
       <p class="ob-sub">Two gentle daily nudges. You can change them later in Settings.</p>
       <label class="ob-toggle"><input type="checkbox" id="obRemCheckin" checked><span><strong>Morning check-in</strong><em>Score your readiness</em></span><input type="time" id="obRemCheckinAt" value="${reminders.checkin}"></label>
       <label class="ob-toggle"><input type="checkbox" id="obRemLog" checked><span><strong>Evening log</strong><em>Keep your tank accurate</em></span><input type="time" id="obRemLogAt" value="${reminders.log}"></label>`,
+    health: () => `
+      <div class="ob-hero ob-heart">${HEART}</div>
+      <h2>Connect ${esc(healthName())}</h2>
+      <ul class="ob-tips">
+        <li><strong>Workouts</strong> from your watch log themselves.</li>
+        <li><strong>Steps</strong> count toward your tank.</li>
+        <li><strong>Sleep and heart rate</strong> fill in your check-in.</li>
+      </ul>
+      <p class="ob-fine">Read-only. Never used for ads. Works with Apple Watch, Oura, Garmin and more.</p>`,
     done: () => `
       <div class="ob-hero">${TANK_ICON}</div>
       <h2>You're all set!</h2>
       <ul class="ob-tips">
-        <li><strong>Log</strong> meals and workouts with the + tab. Try typing "650 cal 70c 45p".</li>
+        <li><strong>Log</strong> with the + tab: search a food or brand, scan a barcode, or snap a photo (3 free photo scans a day).</li>
         <li><strong>Check in</strong> each morning for your readiness score.</li>
-        <li>Your tank gets more accurate the more consistently you log.</li>
+        <li>Everything is free. Your tank gets more accurate the more you log.</li>
       </ul>`,
   };
 
-  const nextLabel = { welcome: "Get started", plan: "Use this plan", reminders: "Turn on reminders", done: "Start tracking" };
-  const canSkip = { about: "Skip", activity: "Skip", goal: "Skip", reminders: "Not now" };
+  const nextLabel = { welcome: "Get started", plan: "Use this plan", reminders: "Turn on reminders", health: "Connect", done: "Start tracking" };
+  const canSkip = { about: "Skip", activity: "Skip", goal: "Skip", reminders: "Not now", health: "Not now" };
 
   let picked = null;
 
@@ -268,6 +282,17 @@ export function openOnboarding(app, { startAt = 0, onFinish, onClose } = {}) {
           if (!ok) toast("Notifications are off for GlycoTank. You can turn them on in Settings.");
         } catch (e) {
           console.error(e);
+        }
+      }
+      if (name === "health" && Capacitor.isNativePlatform()) {
+        next.disabled = true;
+        try {
+          const ok = await connectHealth(app);
+          if (ok) success(`${healthName()} connected`);
+          else toast(`You can connect ${healthName()} later in More.`);
+        } catch (e) {
+          console.error(e);
+          toast(`Couldn't connect. You can try again in More > ${healthName()}.`);
         }
       }
       if (name === "done") return finish();
